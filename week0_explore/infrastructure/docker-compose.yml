@@ -1,5 +1,6 @@
 services:
   circlemud:
+    image: infrastructure-circlemud:latest
     build:
       context: .
     container_name: circlemud
