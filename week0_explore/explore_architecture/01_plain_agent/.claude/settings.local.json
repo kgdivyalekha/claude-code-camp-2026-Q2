@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week0_explore\\\\infrastructure)",
+      "Bash(docker compose *)",
+      "Bash(nc -w 2 localhost 4000)",
+      "Bash(python3 C:\\\\Users\\\\yaada\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\--wsl-localhost-Ubuntu-home-system-claude-code-camp-2026-Q2-week0-explore-explore-architecture-01-plain-agent\\\\6a542400-b32f-4e79-b011-168079e48310\\\\scratchpad\\\\mud_player.py)",
+      "Bash(python3 /tmp/mud_player.py)",
+      "Bash(/usr/bin/python3 /tmp/mud_player.py)",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(grep -A 15 '\"id\": 3040\\\\|\"id\": 3041\\\\|\"id\": 3042\\\\|\"id\": 3043\\\\|\"id\": 3044\\\\|\"id\": 3045\\\\|\"id\": 3046' \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week0_explore\\\\preview\\\\data\\\\world\\\\obj\\\\30.json\")",
+      "Bash(grep -A 15 '\"id\": 3046\\\\|\"id\": 3070\\\\|\"id\": 3071\\\\|\"id\": 3075\\\\|\"id\": 3076\\\\|\"id\": 3080\\\\|\"id\": 3081\\\\|\"id\": 3085\\\\|\"id\": 3086' \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week0_explore\\\\preview\\\\data\\\\world\\\\obj\\\\30.json\")",
+      "Bash(chmod +x /tmp/explore_bakery.sh)",
+      "Bash(bash /tmp/explore_bakery.sh)",
+      "Bash(tee /tmp/mud_output.txt)",
+      "Bash(bash << 'GAME'\nexec 3<>/dev/tcp/localhost/4000\n\nsleep 1\n\n# Login sequence\necho \"dummy\" >&3\nsleep 0.5\n\necho \"yes\" >&3  # Confirm the name\nsleep 0.5\n\necho \"helloworld\" >&3\nsleep 0.5\n\necho \"yes\" >&3  # Confirm password or whatever it's asking\nsleep 0.5\n\n# Now we should be in\necho \"look\" >&3\nsleep 0.8\n\n# Now let's search for bakery by exploring systematically\n# Start with exits\necho \"exits\" >&3\nsleep 0.5\n\n# Try moving to different rooms\nATTEMPTS=0\nwhile [ $ATTEMPTS -lt 25 ]; do\n    # Get current room info\n    echo \"look\" >&3\n    sleep 0.4\n    \n    # Parse the output to see if we find bakery\n    OUTPUT=$\\(timeout 1 cat <&3 2>/dev/null\\)\n    echo \"$OUTPUT\" | head -20\n    \n    if echo \"$OUTPUT\" | grep -qi \"bakery\\\\|granite\\\\|baker\"; then\n        echo \"\"\n        echo \"!!! FOUND THE BAKERY !!!\"\n        sleep 0.5\n        \n        # List the menu\n        echo \"list\" >&3\n        sleep 1\n        timeout 2 cat <&3 | head -50\n        break\n    fi\n    \n    # Try a random direction\n    DIRS=\\(\"north\" \"south\" \"east\" \"west\" \"up\" \"down\"\\)\n    DIR=${DIRS[$\\(\\(RANDOM % 6\\)\\)]}\n    echo \"$DIR\" >&3\n    sleep 0.5\n    \n    ATTEMPTS=$\\(\\(ATTEMPTS + 1\\)\\)\ndone\n\nexec 3>&-\nGAME)",
+      "Bash(bash << 'GAME'\nexec 3<>/dev/tcp/localhost/4000\n\n# Wait for greeting\nsleep 1\n\n# Send name: \"dummy\"\nprintf \"dummy\\\\n\" >&3\nsleep 0.8\n\n# This should ask for password, not confirmation\n# Read the prompt\nPROMPT=$\\(timeout 1 dd if=/proc/self/fd/3 bs=1 count=200 2>/dev/null\\)\necho \"GOT PROMPT:\" \necho \"$PROMPT\"\n\n# Send password if prompted, or 'y' if asked for confirmation\nif echo \"$PROMPT\" | grep -q \"Did I get that right\"; then\n    echo \"Sending Y to confirm dummy\"\n    printf \"y\\\\n\" >&3\n    sleep 0.8\n    \n    # Now should ask for password\n    printf \"helloworld\\\\n\" >&3\nelse\n    echo \"Sending password directly\"\n    printf \"helloworld\\\\n\" >&3\nfi\n\nsleep 1\n\n# Now try to explore\necho \"\"\necho \"=== Looking around ===\"\nprintf \"look\\\\n\" >&3\nsleep 0.8\ntimeout 2 cat <&3 | head -60\n\n# Try to navigate\nfor i in {1..15}; do\n    DIRS=\\(\"north\" \"south\" \"east\" \"west\" \"northeast\" \"northwest\" \"southeast\" \"southwest\"\\)\n    DIR=${DIRS[$\\(\\(RANDOM % 8\\)\\)]}\n    \n    printf \"$DIR\\\\n\" >&3\n    sleep 0.5\n    \n    OUTPUT=$\\(timeout 1 cat <&3 | head -40\\)\n    \n    if echo \"$OUTPUT\" | grep -qi \"bakery\\\\|baker\\\\|granite\"; then\n        echo \"\"\n        echo \"!!! FOUND BAKERY !!!\"\n        echo \"$OUTPUT\"\n        \n        sleep 0.5\n        printf \"list\\\\n\" >&3\n        sleep 1\n        timeout 2 cat <&3 | head -80\n        break\n    fi\ndone\n\nexec 3>&-\nGAME)",
+      "Bash(bash << 'EOF'\n\\(\nsleep 2\necho \"dummy\"\nsleep 1  \necho \"y\"\nsleep 1\necho \"helloworld\"\nsleep 2\necho \"look\"\nsleep 1\necho \"exits\"\nsleep 1\nfor i in {1..20}; do\n  echo \"north\"\n  sleep 0.6\n  echo \"look\"\n  sleep 0.6\ndone\n\\) | telnet localhost 4000 2>&1 | tee /tmp/gameplay.log | grep -A 3 -B 3 \"bakery\\\\|baker\\\\|Granite\"\nEOF)",
+      "Bash(bash /tmp/mud_stable.sh)",
+      "Bash(bash /tmp/mud_simple.sh)",
+      "Bash(python3 /tmp/mud_explorer_robust.py)"
+    ]
+  }
+}

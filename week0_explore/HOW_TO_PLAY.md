@@ -92,7 +92,7 @@ help weather
 help where
 help who
 help look
-help exaxime
+help examine
 help exits
 help consider
 ```
@@ -103,6 +103,7 @@ help consider
 help quests
 help inventory
 help equipment
+help experience # learn how experience worksskill
 help experience # learn how experience worksskill
 help ac # learn about armour class
 help warrior # learn about your class
