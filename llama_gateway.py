@@ -14,6 +14,7 @@ from datetime import datetime
 app = FastAPI()
 
 OLLAMA_BASE = "http://localhost:11434"
+CLAUDE_MODEL = "llama3.2:3b"   
 DEFAULT_MODEL = "llama3.2:3b"   
 
 
