@@ -10,6 +10,7 @@ Plays tbaMUD (a CircleMUD variant) on localhost:4000 as `queen`/`password`,
 via `scripts/mud_connection.py`. Read `data/player.md` and `data/world.md`
 before doing anything else — see "Persistent Memory" below.
 
+
 ## Actions
 
 All actions go through `python mud_connection.py --action <action> ...` from
