@@ -1,94 +1,51 @@
-# Player Memory — queen
+# Player: queen
 
-Last updated: 2026-07-16
+## Current goal
+**Reach level 7, then find and kill the minotaur.**
+Side quest (2026-07-17): find "the red room".
 
-## Current Goal
+## Character sheet (verified 2026-07-17, later session)
+- Level: 1 — Queen the Swordpupil
+- HP: 24/24, Mana: 100/100, Move: ~80/85
+- Exp: ~533; needs ~1467 exp to reach level 2
+- Gold: 56
+- Armor class: 39/10, alignment: 4
+- Equipment: wearing something on body (vest slot taken); carrying a spare
+  bright green newbie vest + a piece of meat (emergency food)
+- Practiced skills: kick (practiced once at guildmaster)
 
-- [ ] Reach character level 7 (currently: level 1)
-- [ ] Defeat the minotaur (**location confirmed: The Red Room**, zone 186 —
-      full route in world.md)
+## Progress log (most recent first)
+- 2026-07-17 (dungeon scout): Fully mapped the newbie zone upper floor
+  (~1070 exp, 96 gold, wielding newbie dagger + wearing vest). Scouted the
+  dungeon below the Alchemist's stairway in quick in-and-out batches:
+  Entrance → Crossing of Corridors → Corner → Another Turn. **SAW THE GREAT
+  MINOTAUR wandering at the Crossing.** Escaped untouched. Red room is down
+  there; do not return before level 4+, do not engage before 7.
+- 2026-07-17 (cont.): Practiced kick at the Guild of Swordsmen practice
+  yard. Killed 3 fidos (+33 exp each, ~10g each) and a newbie monster
+  (+155 exp, 30g, newbie vest). Found the temple back exit past the altar
+  (city gates never open — clock frozen at 6am). Reached the Newbie Zone
+  (the "strange structure" e of the Great Field). Found the Alchemist's
+  Room with the stairway down + level-7 warning sign — this is the gate to
+  the minotaur dungeon. Red room not found yet; safe wing partly explored.
+- 2026-07-17: Reconnected at The Great Field of Midgaard, 16 HP and hungry.
+  Rested to full, walked into Midgaard (Main Street), bought+ate a danish at
+  The Bakery (hunger cured, 13→6 gold). Searching for "the red room".
+- (earlier): 197 exp banked at level 1.
 
-This checklist is the source of truth for whether the job is done. Read it
-before doing anything else in a new session, and update it the moment either
-line is achieved.
+## Grinding plan (level 1 → 7)
+- Newbie monster (Dirty Hallway, respawns): +155 exp/kill, no damage taken
+  at lvl 1. Best known target. Fidos in city: +33 each, trivial.
+- Fight the WHOLE fight in one batch (kill + 5-6 looks + get all corpse) —
+  a batch ending mid-combat causes an auto-flee on reconnect (= lost exp).
 
-## Important: this account may be shared
-
-Confirmed again this session — she was found in a different room than
-memory said (Main Street vs. actually The Dirty Hallway) with no movement
-command from this skill explaining it. Something else may act on `queen`
-between sessions. Always trust a fresh `init`/`look` over this file.
-
-## Last Known Stats (verified via `score`, 2026-07-16, after retreating to The Alchemist's Room)
-
-- Level: 1 (Queen the Swordpupil)
-- HP: 24/24, Mana: 100/100, Movement: 82/85
-- AC: 100/10, Alignment: 29
-- Experience: 124 (need 1876 more for level 2 — level 2 threshold is 2000 total)
-- Gold: 10
-- Quest points: 0
-- Status: standing, hungry, thirsty
-- **Location: The Alchemist's Room (18612), Newbie Zone** — retreated here
-  deliberately after scouting one room further (see Event Log). This is a
-  known-safe room to resume from.
-
-## Inventory / Equipment
-
-- Inventory: empty. Equipment: empty — still no weapon, no armor.
-- **Lead on fixing this**: the Newbie Alchemist NPC, right here in this room,
-  is confirmed (via the game's own object data) to carry a light source (a
-  "light jar"). Getting it — by trade or otherwise — is the natural next step
-  before going back down into the dark maze toward the Red Room.
-
-## Class / Build
-
-- Warrior-type ("Queen the Swordpupil"). No spells; only known skill is
-  `kick` (unlearned). `practice` only works inside a guild — location still
-  unknown.
-
-## Event Log
-
-Most recent first. Keep entries short — a diary of what mattered, not a
-command transcript.
-
-- 2026-07-16: **Located the minotaur with certainty.** Read the server's own
-  world/zone data files (`~/claude-code-camp-2026-Q2/week0_explore/circlemud-world-parser/assets/`)
-  and confirmed via the zone reset command (`M 0 18609 1 18629` in `zon/186.zon`)
-  that the minotaur is placed in room 18629, "The Red Room" — matching what
-  the user described. Computed and then physically walked the real path from
-  Main Street, north out of Midgaard through the Great Field, east into the
-  Newbie Zone, and through it to The Alchemist's Room — full route now in
-  world.md. Read a sign there (verbatim: "If you are below level 7 and alone,
-  or below level 4 then bugger off! Or else don't blame me if you die...").
-  Went one room further down a dark stairway (pitch black, no light source)
-  and immediately retreated back up rather than continue blind/unarmed/alone
-  — the zone file confirms zombies and quasits patrol the remaining stretch
-  to the Red Room, and the minotaur itself is mob-level 7 with ~90-100 HP,
-  which would be an instant loss for a level-1, 24 HP, unarmed character.
-  Full path, room-by-room notes, and the minotaur's actual combat stats are
-  now in world.md. Goal still unstarted in terms of levels, but no longer
-  blocked on "where is it" — now blocked on "get equipped and leveled enough
-  to survive it."
-- 2026-07-16 (earlier): Played directly to ground memory in reality — found
-  her already in the Newbie Zone (not Midgaard), picked up 10 gold, fought
-  "the newbie monster" bare-fisted inconclusively (24→20 HP, no kill, it left
-  the fight).
-- 2026-07-16 (earlier still): Fixed the skill's connection/login bug and set
-  up this memory system for the first time.
-
-## Strategy Notes
-
-- **The minotaur is not a "grind toward it eventually" target anymore — it's
-  a known, fixed encounter with known stats.** It's mob-level 7, ~90-100 HP,
-  hits for ~3-9 per swing, AC 5. Queen needs to actually be around level 7
-  (per the in-game sign) and equipped before this is winnable, not just
-  "stronger than she is now."
-- **Get a weapon first** — still bare-fisted, which is weak both ways.
-- **Get the light jar from the Alchemist (18612)** before descending again —
-  the maze beyond is pitch black without one.
-- **Don't push through the zombie/quasit corridor blind or alone.** That's
-  exactly the mistake the in-game sign warns against, and it's not flavor
-  text — real mobs are placed there in the zone data.
-- The Newbie Zone's shallow rooms (Beginning Of The Passage, Dirty Hallway, A
-  Nexus, More Of The Hallway, Another Corner) seem safe enough to grind early
-  levels in; the danger starts specifically past The Alchemist's Room.
+## Standing warnings
+- Reconnects can hit a "Please type Yes or No:" take-over prompt that eats
+  the first batch commands. If a batch returns only "Please type Yes or No:",
+  resend with `yes` as the first command.
+- The `queen` account may be shared — always re-orient with `score` + `look`
+  after init.
+- Hunger ("You are hungry" in score) blocks HP/move regeneration — buy food
+  at The Bakery (danish 7g, bread 14g).
+- Death drops all equipment at the death spot and costs exp. Fight only mobs
+  that `consider` calls easy/fair; flee below ~40% HP.

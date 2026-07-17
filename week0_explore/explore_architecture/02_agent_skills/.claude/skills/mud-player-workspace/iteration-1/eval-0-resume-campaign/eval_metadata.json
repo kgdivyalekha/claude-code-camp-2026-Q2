@@ -1,0 +1,6 @@
+{
+  "eval_id": 0,
+  "eval_name": "resume-campaign",
+  "prompt": "Continue playing the MUD game toward the current goal. Start by reporting the character's current level, HP, and exp needed to reach the next level, then make some progress toward the goal. When done, write a short report of what you did and the character's state to report.md in the outputs directory.",
+  "assertions": []
+}

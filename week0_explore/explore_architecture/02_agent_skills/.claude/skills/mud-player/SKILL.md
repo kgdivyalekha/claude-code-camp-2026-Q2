@@ -1,210 +1,108 @@
 ---
 name: mud-player
-description: Play tbaMUD (CircleMUD variant) games running on localhost:4000, as the character queen/password. Use this skill whenever you need to interact with the MUD — movement, combat, inventory, exploring — or to pursue a longer-horizon goal (leveling up, hunting a specific monster, mapping the world) across many commands or multiple separate sessions. The skill manages connection lifecycle (a fresh reconnect+login per interaction, since there's no persistent socket across processes), parses game output into structured state, and maintains persistent memory in data/player.md and data/world.md so a goal can survive across sessions.
-compatibility: Python 3.7+ (uses raw sockets — no external netcat dependency)
+description: Play the tbaMUD (CircleMUD variant) game running on localhost:4000 as the character queen/password. Use this skill whenever the user asks to play the MUD, connect to the game, move around, fight monsters, check inventory or stats, level up, hunt a specific monster (like the minotaur), map the world, or continue a previously started game goal — even if they just say "keep playing" or "continue the quest". Also use it for any long-horizon goal that spans many commands or multiple sessions.
+allowed-tools: Bash(python3 *mud_connection.py*), Bash(python *mud_connection.py*), Read, Edit, Write
 ---
 
-# MUD Player Skill
+# MUD Player
 
-Plays tbaMUD (a CircleMUD variant) on localhost:4000 as `queen`/`password`,
-via `scripts/mud_connection.py`. Read `data/player.md` and `data/world.md`
-before doing anything else — see "Persistent Memory" below.
+Play tbaMUD purely over the network as the character `queen` (password `password`). Never read or modify the game server's own files, world data, or process — everything you learn about the world must come from playing it, the same way a human player would. The only tool is `scripts/mud_connection.py`.
 
+## Current campaign
 
-## Actions
+The standing goal (tracked in `data/player.md`) is: **reach level 7, then find and kill the minotaur.** Whenever this skill triggers without a more specific instruction, resume that goal from wherever `data/player.md` says you left off.
 
-All actions go through `python mud_connection.py --action <action> ...` from
-the `scripts/` directory. Every action prints one JSON object to stdout.
+## Connection lifecycle
 
-### `init` — start a session
+There is no persistent socket across Bash calls — each script invocation reconnects and logs in fresh. tbaMUD treats this as reconnecting to the same live character, so game state (position, HP, inventory) carries over server-side. This means:
 
+**Start of any play session:**
+```bash
+python3 scripts/mud_connection.py --action init --login queen --password password
 ```
-python mud_connection.py --login queen --password password --action init
+Note the `session_id` in the JSON output; every later call needs it.
+
+**Prefer batch over single execute.** Every invocation pays a reconnect+login round-trip, so bundle your next several commands into one call:
+```bash
+python3 scripts/mud_connection.py --session-id <ID> --action batch --commands score look inventory
 ```
+Multi-word commands work as single quoted arguments: `--commands "kill rabbit" look score`. Use `--action execute --command "..."` only when the next command genuinely depends on output you don't have yet.
 
-Connects, logs in, sends an extra `look` (login alone doesn't repeat the room
-description), and returns a `session_id` plus the starting room. Save the
-session ID — every later call needs it. The server treats this as
-**reconnecting to the same live character**, not creating a new session, so
-whatever queen was doing when you last disconnected (position, HP, an active
-fight) is still true. **Read that starting state and reconcile it against
-`player.md`/`world.md` before doing anything else** — see "Persistent Memory".
+**Batch sizing judgment:** batch aggressively for safe activities (walking known routes, checking stats, shopping), but keep batches short (1–3 commands) during combat or in unexplored territory — if command 2 walks you into a fight, commands 3–5 fire blind into it.
 
-### `execute` — one command
+All output comes back as JSON with `raw_output` (source of truth — always read it) and `parsed_state` (best-effort extraction; can miss NPCs or mislabel room names, so never trust it over the raw text).
 
-```
-python mud_connection.py --session-id <id> --action execute --command "north"
-```
+**Close when done:** `--action close --session-id <ID>` (deletes the local session file only; the character stays alive in-game).
 
-Runs a single command. Under the hood this reconnects and re-logs in first
-(there's no live socket left over from `init` — each call is a fresh Python
-process), then sends your command and returns only its output. Costs a login
-round-trip (~2-3s) on top of the command itself.
+## The play loop
 
-### `batch` — several commands over one login
+Each turn of play is: **observe → consult memory → decide → act → record.**
 
-```
-python mud_connection.py --session-id <id> --action batch --commands score inventory equipment
-```
+1. **Observe**: `look`, `score`, and the prompt line (`24H 100M 85V` = current hit/mana/movement points). After `init`, always check `score` first — another session may have moved or changed the character since you last played (the queen account can be shared; the server has shown "You take over your own body, already in use!").
+2. **Consult memory**: read `data/player.md` (goal, progress, known dangers) and `data/world.md` (map, where mobs and shops are) before deciding where to go. Don't re-explore what's already mapped.
+3. **Decide** using the strategy section below.
+4. **Act** via batch commands.
+5. **Record**: update the memory files whenever you learn something durable (new room, new mob, a death, a level-up). Do this as you go, not just at session end — the session may be interrupted at any time, and unrecorded knowledge is lost.
 
-Logs in once, then sends each command in `--commands` in order, returning a
-list of per-command results. **Prefer this over repeated `execute` calls**
-whenever you're issuing more than one or two commands in a row (checking your
-sheet, exploring several rooms, a multi-step fight) — it saves a full
-login round-trip per command. Quote multi-word commands individually, e.g.
-`--commands 'get gold' 'kill newbie monster' look`.
+## Combat and leveling strategy
 
-### `close` — end the session
+The goal of leveling is steady exp with near-zero risk of death. Death in tbaMUD costs exp and drops your equipment at the death spot — one death can undo an hour of grinding, so fight conservatively.
 
-```
-python mud_connection.py --session-id <id> --action close
-```
+- **`consider <mob>` before every new fight.** Only engage when it answers "easy", "fairly easy", or "a perfect match". Anything the game hedges on ("you would need some luck", "laughs at you") — walk away and note it in world.md as too dangerous for the current level.
+- **Watch HP every round.** Combat output arrives between prompt lines; if HP falls below ~40% of max, `flee`, then `rest` until healed. Resting is free; dying is not.
+- **Rest to full between fights** (`rest`, then `stand` when done). Check the prompt line to confirm recovery.
+- **Level-appropriate hunting grounds**: at low levels, the newbie areas near the starting town (small animals, janitors, beggars-tier mobs). As `consider` starts calling old targets trivial, push one area further out. `data/world.md` should grow a "hunting grounds by level" section from experience.
+- **After each level-up**: visit the guildmaster to `practice` skills (warriors get kick/bash/rescue), and check whether shops sell better armor/weapons you can now afford. `wield` a weapon and `wear all` — fighting bare-handed wastes exp-per-minute.
+- **Track exp**: `score` reports "You need N exp to reach your next level." Log the number in player.md each session so progress across sessions is visible.
 
-Deletes the local session record. This does **not** make the character quit
-the game — it just stops tracking the session locally, and the character
-stays connected server-side until it goes link-dead. If you want the
-character to actually leave, send a `quit` command first (via `execute` or as
-the last command in a `batch`).
+## Hunting a specific monster (the minotaur)
 
-### `status` — list local sessions
+- First locate it: `where minotaur` (works if it's in your zone) and asking around via exploration. Record every clue in world.md.
+- Do not engage until `consider minotaur` says the fight is winnable — that's the whole reason the level-7 milestone comes first.
+- Before the fight: full HP, best equipment worn and wielded, skills practiced, and know your escape route (the direction you'll `flee` toward).
+- Open with your strongest move (`kick`/`bash` if practiced, else `kill minotaur`), watch HP per round, and flee if it goes badly — you can heal and return; the minotaur isn't going anywhere.
+- When it dies: `get all corpse`, confirm with `score`, and mark the campaign goal complete in player.md.
 
-```
-python mud_connection.py --action status
-```
+## Persistent memory
 
-## Response shape
+Two files in `data/` carry knowledge across sessions. They are the skill's long-term memory — treat keeping them accurate as part of playing well.
 
-```json
-{
-  "success": true,
-  "command": "look",
-  "raw_output": "The Bakery\n   You are standing inside...\n[ Exits: s ]\n...",
-  "parsed_state": {
-    "current_room": {"name": "...", "exits": ["s"], "npcs": [...], "items": [...]},
-    "character": {"health": 23, "max_health": 24, "mana": 100, "level": 1, "experience": 124, "gold": 10},
-    "inventory": {"items": [...], "weight": null},
-    "combat_state": {"in_combat": true, "target": "the newbie monster"}
-  },
-  "error": null,
-  "timestamp": "..."
-}
-```
+**`data/player.md`** — character sheet and campaign state: level, HP/mana/move maxes, exp to next level, gold, equipment, practiced skills, the current goal with a short progress log (dated entries, most recent first), and standing warnings (e.g., the shared-account issue, mobs that nearly killed you).
 
-`parsed_state` is filled in on a best-effort basis — whatever the heuristics
-below actually matched, nothing more. **Treat `raw_output` as the source of
-truth and `parsed_state` as a convenience.** The room-description parser in
-particular is naive (it takes the first line as the room name, and looks for
-"is here"/"lying here" phrasing for NPCs/items) and tbaMUD often writes NPCs
-as a full action sentence instead ("The baker looks at you calmly, wiping
-flour from his face with one hand.") that it won't catch. When you're
-deciding what to write into memory, read the raw text yourself.
+**`data/world.md`** — the map: rooms as a list/tree with exits, plus sections for shops & services (bakery, weapon shop, guildmaster, healer — with directions from the starting room), mobs seen (name, location, `consider` verdict at what level), and hunting grounds by level.
 
-## Verified mechanics (learned by actually playing as queen)
+Reconcile memory with reality at each `init`: if `score`/`look` disagree with player.md (different room, different level), trust the server and correct the file.
 
-These aren't guesses — each one was confirmed live against this server:
+## Server-specific lessons (learned by playing, 2026-07-17)
 
-- **You can't fight while resting/sitting/sleeping.** `kill <target>` while
-  resting silently no-ops ("Nah... You feel too relaxed to do that.."). Send
-  `stand` first.
-- **Combat is automatic once started.** One `kill <target>` starts the fight;
-  it continues on its own each game pulse without repeating the command. Poll
-  with `score` or `look` to watch it progress — don't resend `kill`.
-- **A fight can end without a kill.** The target can flee or wander off mid-fight
-  with no message announcing it — if `combat_state.in_combat` goes false and
-  exp/gold didn't change, nothing was actually killed.
-- **`practice <skill>` only works inside your guild** ("You can only practice
-  skills in your guild.") — check what skills are known/unlearned with bare
-  `practice`, but you have to physically be in the guild to learn them.
-- **queen started with no weapon and no armor equipped**, and fights bare-fisted
-  ("You swing your fist...tickle..."), which does very little damage in either
-  direction. Getting even a basic weapon is a real priority, not a nice-to-have.
-- **`consider <target>`** gives a relative-difficulty read before you commit to
-  a fight (phrases range from an easy win to hopeless). Use it before engaging
-  anything you haven't fought before.
-- **Hunger/thirst are tracked** (`score` reports "You are hungry"/"You are
-  thirsty") and queen currently has no food, drink, or much gold. Address
-  this before a long grind, not after it's a problem.
-- **This account may be shared.** On one `init`, the server greeted with "You
-  take over your own body, already in use!" and the character had moved rooms
-  between sessions with no movement command from this skill causing it. Don't
-  assume queen is exactly where you left her — always reconcile against the
-  live `init`/`look` response, and expect that another party's actions (not
-  just time or death) can explain a state that doesn't match memory.
-
-## Verified command list
-
-From the in-game `help` command — this is the actual command set on this
-server, not a generic MUD command guess:
-
-| Category | Commands |
-|---|---|
-| Movement | `north south east west up down`, `look`, `exits`, `enter`, `leave`, `sleep wake rest sit stand` |
-| Communication | `say gsay shout holler tell ask whisper`, `mail receive check gossip grats auction` |
-| Objects | `get drop junk donate put give wear grab`, `inventory equipment remove`, `examine eat drink taste sip pour` |
-| Info | `score help info who news time weather`, `where`, `consider`, `levels wizlist immlist`, `toggle flags` |
-| Combat | `kill wield flee assist track`, `kick bash rescue backstab cast` |
-| Utility | `quit save brief compact title commands socials` |
-
-`help <keyword>` gives detail on any of these, or on topics like `social`,
-`shops`, `inns`, `warrior`, `magic`, `spells`. Run it in-game rather than
-guessing when you hit something unfamiliar.
-
-## Persistent Memory
-
-`data/player.md` and `data/world.md` are the only things that outlive a
-session — the MUD has no notion of "your conversation," and this skill's own
-context will eventually end or reset. Read both **before** connecting, and
-write to them **as things happen**, not just before you stop:
-
-- **`player.md`**: the goal checklist, last known stats/inventory, and a short
-  event log. This is what makes "reach level 7" or "defeat the minotaur"
-  possible to resume across sessions — it's the definition of what "done"
-  means and the diary of progress toward it.
-- **`world.md`**: the map — rooms seen (name, exits, notable occupants), a
-  monster tracker (location + danger read for anything worth remembering), and
-  routes between places. Update a room's entry in place if something about it
-  changes rather than duplicating it.
-- **Reconcile, don't assume.** Right after `init`, compare the server's actual
-  report against memory. If they've drifted — because of death, time, or
-  (see above) someone/something else acting on this account — trust the live
-  server and correct memory, not the other way around.
-- Write prose/tables meant to be skimmed in a few seconds, not raw JSON dumps.
-
-## Playing toward a long-horizon goal
-
-For something like "reach level 7 and defeat the minotaur" — far more actions
-than fit in one exchange, plausibly spanning several conversations:
-
-1. Read `player.md`'s goal checklist first; it's what "done" means.
-2. Loop: assess current state → pick the safest useful next action → act →
-   update memory if anything changed → repeat. Don't plan the whole route
-   upfront — HP, room contents, and what just attacked you change too fast
-   for a fixed plan to stay valid.
-3. Checkpoint memory regularly, not only at the end — a long grind is exactly
-   what's most likely to get interrupted.
-4. Use `consider` (and `world.md`'s Monster Tracker, once populated) before
-   any unfamiliar fight. Don't engage the actual named target until it's
-   located, assessed, and plausibly survivable given current stats/gear.
-5. Fix known gaps before grinding seriously: get a weapon, address hunger/
-   thirst, and practice available skills at the guild once you can reach one.
+- **The take-over prompt eats commands.** Reconnecting while the character
+  is live often hits "Please type Yes or No:" during login. If a batch's
+  results all say that, resend the batch with `yes` prepended. Never send
+  `look` blind into it — the login flow once interpreted it as a new
+  character name. If results look like character creation ("Invalid name",
+  "Did I get that right ... (Y/N)?"), just reconnect; the half-created
+  character dies with that socket.
+- **Finish every fight inside one batch.** Disconnecting mid-combat makes
+  the character auto-flee on the next reconnect: lost exp (~8–35 each time)
+  and a random room change. Shape combat batches as:
+  `'kill <mob>' look look look look look look 'get all corpse' score` —
+  the looks let combat rounds resolve; extend with more looks for tougher
+  mobs rather than splitting the fight.
+- **City gates never open** (game clock appears frozen at 6am). The only
+  known exit from Midgaard is the temple back door: Temple Square → n → n
+  (By the Temple Altar) → n. This leads to the Great Field and the Newbie
+  Zone (see world.md for the full map).
+- **Hunger/thirst block regeneration.** `score` shows "You are hungry."
+  Fido corpses drop meat (`get all corpse`, `eat meat`); the Temple Square
+  fountain fixes thirst (`drink fountain`); the Bakery sells food.
+- **Exp is granted per hit, not just per kill** — and lost on flee, so
+  interrupted fights actively cost progress.
+- **Mobs flee when badly hurt** and return confused; corpses can be looted
+  by anyone, so `get all corpse` promptly.
 
 ## Troubleshooting
 
-**Login unexpectedly asks you to confirm a password (new-character flow)?**
-The username never reached the actual name prompt — almost always because a
-read returned before the server finished its banner/negotiation (there's a
-~1s gap between the quick "Attempting to Detect Client" message and the rest
-of the banner). Disconnect immediately without answering Y/N, or it will
-create an unwanted character.
-
-**A command seems to do nothing?**
-Check `player.md`/the last `score` — you may be resting/sitting (most
-commands, especially combat, need you standing) or already in combat.
-
-**Session ID lost or connection dropped?**
-Just re-run `init` — the server reconnects to the same live character rather
-than failing or duplicating it.
-
-**Parser missed something?**
-Read `raw_output` directly — see "Response shape" above. This is expected for
-custom-worded room descriptions, not a bug to chase.
+- **Timeout / no response on init**: the server may be down — report that to the user rather than retrying endlessly. Check with one retry after a few seconds.
+- **"Session not found"**: run `--action init` again to mint a new session; nothing in-game is lost.
+- **Output looks truncated**: long room descriptions or fast combat can span reads; send `look` again to resync rather than guessing.
+- **Character in an unexpected place**: someone else used the account. Re-orient with `look` + world.md; don't assume your map is wrong.

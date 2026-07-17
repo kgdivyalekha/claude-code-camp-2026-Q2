@@ -1,171 +1,125 @@
-# World Memory
+# World map (learned by playing — never from server files)
 
-Last updated: 2026-07-16
+## Known rooms (Midgaard area)
+- **The Great Field of Midgaard** — countryside path; exits: n e s w.
+  s → Main Street (city). Strange structure to the east, dirt path west.
+- **Main Street** (City of Midgaard) — exits: n e s w.
+  n → The Bakery; e → market square (per room text); s → Armory entrance
+  (per room text). NPC: a cityguard.
+  NOTE: we entered Main Street by walking s from the Great Field, but the
+  Bakery (n of Main Street) is a dead end (exits: s only) — so Field↔Main
+  Street is NOT a simple n/s pair; treat the field connection as unmapped.
+- **The Bakery** — n of Main Street; exits: s. NPC: the baker (shopkeeper).
+- **Market Square** — e of Main Street; exits: n e s w. Hub: n → Temple
+  Square, s → Common Square, e/w → main street. Peculiar statue here.
+- **The Temple Square** — n of Market Square; exits: n e s w. Fountain
+  (drink here — free water), 2 janitors. n → Temple, e → Grunting Boar Inn,
+  w → Clerics' Guild (unvisited).
+- **The Temple of Midgaard** — n of Temple Square; exits: n e s w d. ATM.
+  w → Reading Room, e → donation room (both unvisited). Likely recall point.
+- **Grunting Boar Inn, Entrance Hall** — e of Temple Square; exits: n e w u.
+  n → Post Office, e → bar, u → Reception.
+- **The Reception** (inn, upstairs) — exits: n d. n → Cryogenic Center.
+  Receptionist, ATM. No guest rooms — NOT the red room.
+- **The Grunting Boar** (bar) — e of entrance hall; exits: w (dead end).
+  3 drunks + bartender.
+- **The Common Square** — s of Market Square; exits: n e s w.
+  w → poor alley, e → dark alley, s → "nasty smell" (sewers?).
+  NPCs: Peacekeeper (avoid), 3x beastly fido (newbie prey!).
 
-The route from Midgaard to the Newbie Zone, and the Newbie Zone's full layout
-down to the Red Room, is now known with certainty — partly from walking it
-live, partly from the server's own world/zone data files (found under
-`~/claude-code-camp-2026-Q2/week0_explore/circlemud-world-parser/assets/`,
-parsed with that repo's `circlemud_world_parser` library: `wld/30.wld` for
-Midgaard, `wld/186.wld` + `zon/186.zon` + `mob/186.mob` + `obj/186.obj` for
-the Newbie Zone). Where a room below is marked **(live-confirmed)** it's been
-walked and its text matches; **(file-confirmed only)** means it's known from
-the data files but hasn't been physically walked this session.
+- **The Dark Alley** — e of Common Square; exits: e s w. s → Thieves' Guild.
+  4 mercenaries (DANGEROUS at low level — do not engage).
+- **The Dark Alley at the Levee** — exits: e s w. s → The Levee.
+- **The Eastern End of the Alley** — exits: s w. s → Deserted Warehouse.
+- **The Deserted Warehouse** — exits: n. A sailor (no dialogue response).
+- **The Levee** — exits: n s. Retired captain sells boats; river to the s
+  (do NOT enter the river without a boat).
+- **Main Street West End** — w of central Main St; exits: n e s w.
+  n → magic shop, s → Guild of Magic Users, w → West Gate.
+- **Inside the West Gate** — exits: e s (w-gate). Gate LOCKED at night
+  (opens at dawn ~6am game time). Wall Road leads s. 5 cityguards.
+- **Main Street East (pet shop block)** — e of Market Sq; exits: n e s w.
+  n → general store, s → Pet Shop.
+- **Main Street East (guild block)** — exits: n e s w. n → weapon shop,
+  s → Guild of Swordsmen, e → East Gate.
+- **Inside the East Gate** — exits: (e-gate) s w. Gate LOCKED at night.
+  s → Water Shop. 4 cityguards.
+- **Guild of Swordsmen, Entrance Hall** — exits: n e. Knight guard, ATM.
+  e → Bar of Swordsmen.
+- **The Bar of Swordsmen** — exits: s w. Bulletin board, waiter.
+  s → practice yard.
+- **The Tournament and Practice Yard** — exits: n d. **GUILDMASTER HERE —
+  `practice <skill>` works in this room only.** A well leads down into
+  darkness (d) — unexplored, need a light source.
 
-## Full Route: Main Street → The Red Room
+## Shops & services
+- **The Bakery** — n of Main Street. Sells: danish pastry 7g, bread 14g,
+  waybread 70g. Eat when `score` says "You are hungry" (hunger blocks regen).
+- Armory — s of Main Street (per room text, unvisited)
+- Market square — e of Main Street (per room text, unvisited)
+- Guildmaster (for `practice`): unknown
+- Healer / temple: unknown
 
-```
-Main Street (3013)
-  --east--> Market Square (3014)
-  --north--> The Temple Square (3005)
-  --north--> The Temple Of Midgaard (3001)
-  --north--> By The Temple Altar (3054)
-  --north--> Behind The Temple Altar (3059)
-  --north--> The Great Field Of Midgaard (3060)
-  --north--> The Great Field Of Midgaard (3061)   [2nd segment, same room name]
-  --east---> The Entrance To The Newbie Zone (18600)
-  --north--> The Beginning Of The Passage (18601)
-  --east---> The Dirty Hallway (18602)
-  --east---> A Nexus (18603)
-  --south--> More Of The Hallway (18607)
-  --south--> Another Corner (18611)
-  --[open door, then east]--> The Alchemist's Room (18612)
-  --down---> The Entrance [dark maze] (18632)        <- deepest point reached live
-  --north--> A Crossing Of Corridors (18627)          } file-confirmed only
-  --north--> A Corner In The Hallway (18623)          } from here down —
-  --east---> Another Turn (18624)                     } see "Not Yet Walked"
-  --south--> A Branching Passage (18630)              } below
-  --west---> THE RED ROOM (18629) — Minotaur here
-```
+## Mobs seen
+| Mob | Location | `consider` verdict | At level |
+|-----|----------|--------------------|----------|
+| cityguard | Main Street | not checked (city guards hit hard — avoid) | 1 |
+| the baker | The Bakery | shopkeeper — do not attack | 1 |
 
-This whole route was cross-checked against the actual game live as far as The
-Alchemist's Room and one step into the dark maze beyond it; the segment from
-"A Crossing Of Corridors" to the Red Room is confirmed by the zone file's
-mob-placement data (see Monster Tracker) but not yet physically walked — see
-"Not Yet Walked / Next Steps" below for why we turned back before finishing it.
+## Hunting grounds by level
+- Levels 1–3: unknown — look for newbie areas near Midgaard
+- Levels 4–6: unknown
+- Level 7+: unknown
 
-## Midgaard (starting town)
+## The Newbie Zone (custom area — minotaur zone)
+Route from city: Temple Square → n (Temple) → n (By the Temple Altar) →
+n (Behind the Temple Altar — back exit, NO GATE NEEDED) → n (Great Field) →
+n (Great Field, login room) → e (Entrance to the Newbie Zone) → n.
 
-### The Bakery
-- Exits: s
-- Small bakery. Sweet smell of danish and bread; shelves stocked with bread/danish; a sign on the counter.
-- Occupants seen: a cityguard, an oozing green gelatinous blob, the baker (shopkeeper, seemed passive)
+**IMPORTANT: city gates (east/west) stay locked — the temple back exit is
+the only known way out of Midgaard. Game clock seems frozen (stuck 6am),
+so "wait for dawn" does not work.**
 
-### Main Street (Midgaard)
-- Exits: n, e, s, w
-- Main street through Midgaard. North → Bakery. South → Armory (unvisited). East → Market Square. West unexplored.
+- **Entrance to the Newbie Zone** — exits: n w. w → Great Field login room.
+- **The Beginning of the Passage** — exits: e s.
+- **The Dirty Hallway** — exits: e (s-door: noises behind it, unexplored) w.
+  Newbie monster spawns here.
+- **A Nexus** — e of Dirty Hallway; exits: (n-door) (e-door) s w.
+  s → darker hallway (unexplored). Pet dragon wanders here (harmless?).
+- **A Bright Hallway** — n of Nexus (open the door); exits: n s.
+  "Interesting design on the floor" (unexamined).
+- **The Statue's Room** — exits: e s. Statue with plaque. Talking newbie NPC.
+- **The Hallway** (decorated) — exits: e w.
+- **The North Stairs** — exits: s w u. u → Balcony (view of Dragonhelm Mts).
+- **The South Stairs** — s of North Stairs; exits: n s w u. w blocked.
+- **A Narrow Passage** — exits: n (s-oak door).
+- **The Alchemist's Room** — s through oak door; exits: n (w-door) d.
+  Newbie Alchemist NPC. **Dark stairway down with a sign: "If you are below
+  level 7 and alone, or below level 4 then bugger off! Or else don't blame
+  me if you die..." → THE DUNGEON BELOW IS THE LEVEL-7 AREA (minotaur/red
+  room candidate). DO NOT go down before level 7.**
 
-### Market Square → Temple Square → Temple Of Midgaard → By/Behind The Temple Altar → The Great Field Of Midgaard
-- File-confirmed chain leading out of the city to the north; the Great Field is open countryside ("you can see to the horizon... busy city of Midgaard lies to the south") with a side path east into "a strange structure" — that structure is the Newbie Zone entrance.
+## The Newbie Dungeon (below the Alchemist's Room — LEVEL 7 AREA)
+Entered via the dark stairway (d) in the Alchemist's Room. Scouted at level
+1 in quick in-and-out batches (2026-07-17):
+- **The Entrance** (bottom of stairs) — exits: n s w u. u → Alchemist's Room
+  (the only known way out — remember it).
+- **A Crossing of Corridors** — n of Entrance; exits: n e s w.
+  ⚠ **THE GREAT MINOTAUR was seen here** ("wondering just what you'll taste
+  like") — it WANDERS the dungeon; any room here can contain it.
+- **A Corner in the Hallway** — n of Crossing; exits: e s. A quasit sneaks
+  here (did not aggro on pass-through).
+- **Another Turn** — e of Corner; exits: s w. Passage bends south.
+- Unexplored: Entrance s/w, Crossing e/w, Another Turn s. The RED ROOM is
+  somewhere in here (user says the minotaur is contained in the red room —
+  it also roams nearby corridors).
+- Zombie-like newbies wander down here too.
+**Do not fight anything here before level 7. Do not linger — scout in
+single batches that end back at the Alchemist's Room.**
 
-## Newbie Zone (dungeon, zone 186)
-
-Explicitly built for low-level play — flavor text literally says "Kill him!
-Kill him!" about its starter mob, and a sign deeper in gives an exact level
-gate (see below).
-
-### The Entrance To The Newbie Zone (18600) — file-confirmed
-- Exits: n (into the zone), w (back to the Great Field)
-- "Ahhh... the entrance to the newbie zone! ... when you've readied yourself you can enter to the north."
-
-### The Beginning Of The Passage (18601) — live-confirmed
-- Exits: e, s
-- "A long corridor... you can hear the sound of creatures roaming about, but can't tell where."
-- Seen here: a tiny pile of gold coins (picked up, 10gp), "the newbie monster"
-
-### The Dirty Hallway (18602) — live-confirmed
-- Exits: e, (s) [closed/special door], w
-- "Continue wandering down the hallway... walls a bit slimy and moldy."
-- Seen here: "the newbie monster", "someone's little pet dragon" (this is mob
-  "Dragon", zone-file-confirmed as a placed mob here — but its own flavor
-  text and behavior so far is a harmless loose pet, not hostile)
-
-### A Nexus (18603) — live-confirmed
-- Exits: (n) [closed], (e) [closed], s, w
-- "An intersection of two passages... the passage brightens" to the north/east; darker hallway continues south.
-- Seen here: the newbie monster (roams between rooms in this zone)
-
-### More Of The Hallway (18607) — live-confirmed
-- Exits: n, s, (w) [door, unexplored beyond it]
-- "More of this annoying passage."
-
-### Another Corner (18611) — live-confirmed
-- Exits: n, (e) [door — keyword is literally **"door"**, e.g. `open door`, not `open east`], w
-- "There is a door to the east though... wonder where that leads?"
-- Seen here: "a creepy little crawling thing" (a Crawler, zone-confirmed, did not aggro)
-
-### The Alchemist's Room (18612) — live-confirmed
-- Exits: (n) [door, unexplored], w, d (down — dark stairway)
-- "Lots of bottles and flasks... a lot of formulae and spells written on the walls... a dark stairway in the corner leading down, with a large sign next to it that you probably should read."
-- **The sign says (read live, verbatim): "If you are below level 7 and alone, or below level 4 then bugger off! Or else don't blame me if you die..."** This is the game itself telling you the intended level for what's beyond this point — treat it as authoritative, not flavor text.
-- Occupants: "The Newbie Alchemist" (a mob, didn't aggro when queen entered) and
-  a "funny little imp-like thing (a quasit perhaps?)". **The Alchemist is
-  confirmed by the object data file to be carrying a "light jar" (a brightly
-  glowing jar) — a light source.** Getting this (by trade, or as a kill drop)
-  solves the "pitch black" problem below, and this room is already known safe
-  to reach.
-
-### The Entrance [dark maze] (18632) — live-confirmed (briefly)
-- Reached via `down` from The Alchemist's Room. **It is pitch black here** —
-  no room description renders without a light source. Queen retreated
-  immediately (`up`, back to The Alchemist's Room) rather than push forward
-  blind, unarmed, and alone. HP was unaffected (24/24 both before and after —
-  nothing attacked during the brief visit).
-
-### Beyond here: A Crossing Of Corridors → A Corner In The Hallway → Another Turn → A Branching Passage → The Red Room
-File-confirmed only (not yet walked): `north, north, east, south, west` from
-The Entrance. This stretch is where the zone file places its zombies and
-quasits (see Monster Tracker) — i.e. the sign's warning maps directly onto
-real mob placements, not just flavor text.
-
-### The Red Room (18629) — file-confirmed only
-- Exits: n (18620), e (18630, the way in), d (a portal — "You could go down
-  into it, but you can't be sure where you'll end up, or if you can get back,"
-  drops into 3061, the Great Field — one-way, don't use it by accident)
-- "It takes you a moment to realize that the red glow here is coming from a
-  round portal on the floor. It looks almost as if someone had painted a
-  picture of a dirt [path] running through a field on the floor of this
-  room... you can feel the wind in the field coming out of the picture."
-- **This is where the minotaur is placed** (zone file: `M 0 18609 1 18629`,
-  max count 1) — see Monster Tracker for its actual combat stats.
-
-## Monster Tracker
-
-| Monster | Location | Danger | Status |
-|---|---|---|---|
-| **Minotaur** | **The Red Room (18629)** | Mob level **7** (this is exactly the sign's "below level 7 and alone" threshold — it's not a coincidence). Stats from the mob file: AC 5, ~88-100 HP (3d5+85), hits for roughly 3-9 dmg per swing (2d4+1), alignment -1000 (evil). Flavor text: "The Great Minotaur is wondering just what you'll taste like." Kill reward: 1000 gold, 3000 exp (huge — likely several levels' worth). **Not remotely survivable at queen's current level 1 / 24 HP / unarmed.** | **Located — primary goal target.** Do not engage until queen is level 7 (per the sign) or has a group, and has a real weapon. |
-| Zombies | 18620, 18624, 18637, 18633 (up to 5 per room) | Not yet fought; zombies are typically slow but tough for their level. Directly on the path from The Entrance to the Red Room. | Guarding the approach — avoid or fight only once properly equipped |
-| Quasits | 18627, 18636, 18638, 18621 (up to 5 per room) | Not yet fought; quasits are small demons, usually fast/tricky rather than high-damage. Also directly on the path (A Crossing Of Corridors is a Quasit spawn room). | Guarding the approach |
-| The newbie monster | Beginning Of The Passage, Dirty Hallway, A Nexus (roams) | `consider` said "You would need some luck!" — fair fight. Engaged once bare-fisted: 24→20 HP over several rounds, no kill (it left before dying). | Confirmed fightable; worth a rematch once queen has a weapon |
-| The Newbie Alchemist | The Alchemist's Room (18612) | Didn't aggro on entry. Carries a light jar (see room notes) — a real reason to interact rather than avoid | Not yet fought; possible source of a light source |
-| A funny little imp-like thing (quasit) | The Alchemist's Room (18612) | Didn't aggro | Unconfirmed hostile |
-| A creepy little crawling thing (Crawler) | Another Corner (18611) | Didn't aggro | Unconfirmed hostile |
-| Someone's little pet dragon | The Dirty Hallway | Explicitly a pet, not hostile | Not a target — don't attack |
-| Oozing green gelatinous blob | The Bakery | Unknown, seemed passive last seen | Unconfirmed hostile |
-| Cityguard | The Bakery | Guard NPC | Avoid — guards typically retaliate hard if attacked |
-
-## Points of Interest
-
-- **Light source lead**: the Newbie Alchemist (18612) is confirmed to carry a
-  "light jar." Solving the pitch-black problem beyond The Entrance likely
-  starts here, and this room is already known safe to reach.
-- **Warrior guild** — location still unknown. Needed to `practice kick`.
-- **A shop/vendor** — location still unknown. queen has 10 gold and no gear.
-- Armory — south of Main Street (mentioned, not yet visited)
-
-## Not Yet Walked / Next Steps
-
-Queen physically reached The Entrance (18632, the dark maze start) and
-retreated immediately rather than continue **blind** (no light), **unarmed**
-(no weapon or armor), and **alone at level 1** through a corridor the zone
-data confirms is patrolled by zombies and quasits, straight into a level-7
-mob's room. The sign at 18612 says this outright. This matches the strategy
-already recorded in `player.md`: locate and assess before engaging, don't
-fight blind just to move faster. Reasonable next steps, in order:
-1. Get a weapon (still none equipped).
-2. Get a light source — try the Alchemist at 18612 first.
-3. Grind safer kills (the newbie monster, once armed) toward level 4+ before
-   even considering re-entering the dark maze, and toward level 7 before the
-   Red Room itself.
-4. When ready, the walked route above (down from 18612, then
-   north/north/east/south/west) is the confirmed path in.
+## Quest intel
+- **Minotaur**: location unknown. Try `where minotaur` in each new zone.
+- **The Red Room**: in the Newbie Dungeon below the Alchemist's Room (per
+  the user, the minotaur is contained there; the minotaur was sighted at
+  A Crossing of Corridors). Exact room not yet reached — north-ish from the
+  Entrance. Resume the search at level 4+, engage at level 7.
