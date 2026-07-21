@@ -47,21 +47,10 @@ client rather than the interactive CLI.
      so the subagent is registered programmatically instead of via file
      discovery.
    - Top-level orchestrator prompt delegates to the `mud-player` subagent
-     (mirrors how the `Agent`/`Task` tool currently invokes it).
-   - **Multi-player execution runs in the foreground, never backgrounded.**
-     `argv` is parsed as one or more `"login: goal"` assignments (e.g.
-     `python3 scripts/run_agent.py "queen: kill rats near temple square" "horseman: explore north of the temple"`).
-     Each assignment gets its own `ClaudeSDKClient` session, all driven
-     concurrently via `asyncio.gather` in the same process — no
-     `nohup`/`&`/detached subprocess, so a Ctrl-C or process exit stops every
-     player immediately and nothing keeps running unobserved.
-   - Every message from every player's session is printed to stdout as soon
-     as it arrives, tagged with that player's login (e.g. `[queen] ...`,
-     `[horseman] ...`), so the status of every player is visible live while
-     they're playing, not just in a final summary.
-   - With no `argv`, fall back to the original single-session interactive
-     loop (`python3 scripts/run_agent.py`, one request typed at a time) —
-     useful for ad hoc exploration outside a scripted multi-player run.
+     (mirrors how the `Agent`/`Task` tool currently invokes it), taking a
+     user instruction from `argv` (e.g. `python3 scripts/run_agent.py "play as queen"`).
+   - Stream and print the SDK's response messages to stdout so behavior is
+     observable the same way the CLI's subagent output is today.
 
 3. **Retire the filesystem definition**
    - Delete `.claude/agents/mud-player.md` (or move its content, since it's
@@ -71,24 +60,19 @@ client rather than the interactive CLI.
      adjusting for the new script.
 
 4. **Update usage docs**
-   - `scripts/run_agent.py`'s module docstring documents both entry points:
-     multi-player non-interactive (`"login: goal"` args, concurrent,
-     foreground, live per-player status) and the single-session interactive
-     fallback. `scripts/example_gameplay.sh` is unrelated (it exercises
-     `mud_connection.py` directly) and stays as-is.
+   - Adjust `scripts/example_gameplay.sh` comments or add a short usage note
+     (e.g. in a new `scripts/README.md` or inline comment) pointing at
+     `python3 scripts/run_agent.py "<instruction>"` as the new entry point
+     for playing via the agent, distinct from calling `mud_connection.py`
+     directly.
 
 ## Verification
 
 - `python3 -c "import claude_agent_sdk"` succeeds after install.
-- Run `python3 scripts/run_agent.py "queen: list known players"` and confirm
-  the SDK invokes the `mud-player` subagent (visible via streamed tool-use
+- Run `python3 scripts/run_agent.py "list known players"` and confirm the
+  SDK invokes the `mud-player` subagent (visible via streamed tool-use
   events) rather than any file-based agent lookup, and that it correctly
   calls `scripts/mud_connection.py --action list-players`.
-- Run with two assignments at once, e.g.
-  `python3 scripts/run_agent.py "queen: check score" "horseman: check score"`,
-  and confirm both run concurrently in the foreground (no backgrounding) with
-  interleaved, per-player-tagged output appearing live as each session
-  progresses, not buffered until the end.
 - Confirm `.claude/agents/` no longer influences behavior (e.g. temporarily
   rename/remove it and see the script still works, since it no longer reads
   from there).
@@ -105,4 +89,4 @@ client rather than the interactive CLI.
   for reference/comparison against `03a_subagent_sdk`?
   A: Yes, you can delete it from 03b_subagent_sdk
 - Prompt text: to be loaded from markdown file
-- The new driver file that you create must receive the user request from an interactive loop
+- The new driver file that you create must receive the user request from an interactive inline loop and not to throw new line while a prompt is being executed.
