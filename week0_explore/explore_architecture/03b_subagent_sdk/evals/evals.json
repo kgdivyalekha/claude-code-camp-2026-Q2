@@ -1,0 +1,26 @@
+{
+  "skill_name": "mud-player",
+  "evals": [
+    {
+      "id": 0,
+      "name": "login-and-check-inventory",
+      "prompt": "Start a new MUD game session with the character queen/password, then check the inventory",
+      "expected_output": "Session initialized with parsed inventory showing items and weight",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "movement-sequence",
+      "prompt": "Using the active session from the previous test, move north to a new room, then move south back to the original room. After each movement, report the room name and available exits.",
+      "expected_output": "Two successful movement commands with parsed room data (exits, NPCs, items)",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "error-handling",
+      "prompt": "Try to move in an invalid direction (like 'northwest') and try to execute an invalid command (like 'cast nonexistent_spell'). Verify that errors are handled gracefully with meaningful error messages.",
+      "expected_output": "Two error responses with success: false and clear error messages",
+      "files": []
+    }
+  ]
+}

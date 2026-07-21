@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(///wsl.localhost/Ubuntu//**)",
+      "Read(//c/Users/yaada/.claude/**)",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week0_explore\\\\explore_architecture\\\\03_subagent_sdk\")",
+      "Bash(python3 scripts/mud_connection.py --action init --login queen --password password)",
+      "Bash(wsl.exe -- which python3)",
+      "Bash(wsl.exe -- python3 --version)",
+      "Bash(wsl.exe *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('scripts/mud_connection.py'\\).read\\(\\)\\)\")",
+      "Bash(python3 scripts/mud_connection.py --action init --login smarty --password secret)",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(bash scripts/mud_connection.py --action init --login smarty --password secret)",
+      "Bash(/usr/bin/env python3 --version)",
+      "Bash(python3 scripts/mud_connection.py --action list-players)",
+      "Bash(bash --version)",
+      "Bash(python3 scripts/mud_connection.py --action init --login horseman --password \"magic\")",
+      "Bash(scripts/mud_connection.py *)",
+      "Bash(../../../venv/bin/python3 *)",
+      "Bash(bash -c 'which python3')",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/**)",
+      "Read(///wsl.localhost/Ubuntu/home/system/**)",
+      "Bash(\"//wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/venv/bin/pip\" list *)",
+      "Bash(venv/bin/python3 -m pip list)",
+      "Bash(venv/bin/python3 --version)",
+      "Bash(venv/bin/pip --version)",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week0_explore/explore_architecture/**)",
+      "Bash(rm .claude/agents/mud-player.md)",
+      "Bash(rmdir .claude/agents)"
+    ]
+  }
+}
