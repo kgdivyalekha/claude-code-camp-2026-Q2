@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(ollama pull *)"
+      "PowerShell(ollama pull *)",
+      "Bash(chmod +x *)",
+      "Bash(git -C \"/home/system/claude-code-camp-2026-Q2\" mv .boukensha/settings.yml .boukensha/settings.yaml)",
+      "Bash(mv \"/home/system/claude-code-camp-2026-Q2/.boukensha/settings.yml\" \"/home/system/claude-code-camp-2026-Q2/.boukensha/settings.yaml\")",
+      "Bash(git mv *)",
+      "Bash(BOUKENSHA_DIR=/home/system/claude-code-camp-2026-Q2/.boukensha ruby example.rb)"
     ]
   }
 }

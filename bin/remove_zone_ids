@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Remove Windows Zone.Identifier alternate-data-stream files (e.g. foo.txt:Zone.Identifier)
+# that show up as literal *.Zone.Identifier files under WSL.
+set -euo pipefail
+
+target="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+if [[ ! -d "$target" ]]; then
+    echo "Error: '$target' is not a directory" >&2
+    exit 1
+fi
+
+mapfile -d '' files < <(find "$target" -type f -name '*Zone.Identifier' -print0)
+
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "No Zone.Identifier files found under $target"
+    exit 0
+fi
+
+for f in "${files[@]}"; do
+    rm -f -- "$f"
+    echo "Removed: $f"
+done
+
+echo "Removed ${#files[@]} Zone.Identifier file(s) from $target"
