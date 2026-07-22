@@ -88,4 +88,3 @@ class Config:
         if settings_file.exists():
             return yaml.safe_load(settings_file.read_text()) or {}
         return {}
-
