@@ -6,7 +6,15 @@
       "Bash(git -C \"/home/system/claude-code-camp-2026-Q2\" mv .boukensha/settings.yml .boukensha/settings.yaml)",
       "Bash(mv \"/home/system/claude-code-camp-2026-Q2/.boukensha/settings.yml\" \"/home/system/claude-code-camp-2026-Q2/.boukensha/settings.yaml\")",
       "Bash(git mv *)",
-      "Bash(BOUKENSHA_DIR=/home/system/claude-code-camp-2026-Q2/.boukensha ruby example.rb)"
+      "Bash(BOUKENSHA_DIR=/home/system/claude-code-camp-2026-Q2/.boukensha ruby example.rb)",
+      "Read(//mnt/c/Users/**)",
+      "Read(///wsl.localhost/Ubuntu//**)",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && pwd && ls venv/bin/pip\")",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && ./venv/bin/pip install pyyaml 2>&1 | tail -20\")",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && chmod +x week1_baseline/bin/python/00_config week1_baseline/bin/ruby/00_config && ./venv/bin/pip install -e week1_baseline/python/00_config 2>&1 | tail -20\")",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && ./week1_baseline/bin/python/00_config\")",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && ./week1_baseline/bin/ruby/00_config\")",
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/bin/ruby && cd ../../ruby/00_config && pwd && ls examples/example.rb\")"
     ]
   }
 }

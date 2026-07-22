@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+src/boukensha/__init__.py
+src/boukensha/config.py
+src/boukensha.egg-info/PKG-INFO
+src/boukensha.egg-info/SOURCES.txt
+src/boukensha.egg-info/dependency_links.txt
+src/boukensha.egg-info/requires.txt
+src/boukensha.egg-info/top_level.txt
+src/boukensha/tasks/__init__.py
+src/boukensha/tasks/base.py
+src/boukensha/tasks/player.py
