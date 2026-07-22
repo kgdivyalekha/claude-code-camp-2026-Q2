@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: boukensha
+Version: 0.4.0
+Summary: Boukensha API client - makes HTTP requests to LLM APIs with retry logic
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Requires-Dist: python-dotenv
+Provides-Extra: dev

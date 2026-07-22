@@ -23,7 +23,15 @@
       "Bash(where python3 *)",
       "Bash(where wsl *)",
       "Bash(wsl --version)",
-      "Bash(wsl.exe bash *)"
+      "Bash(wsl.exe bash *)",
+      "Bash(find \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\.claude\" -type f -name \"*.md\")",
+      "Bash(ls -la \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\.claude\")",
+      "Bash(ls *)",
+      "Bash(wc -l \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\.claude\\\\skills\"/*.md \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\docs\\\\plans\\\\python_port\\\\04_api_client.md\")",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\")",
+      "Bash(bash \"./.claude/skills/port-to-python.sh\" 04)",
+      "Bash(timeout 30 bash \"./.claude/skills/port-to-python.sh\" 04 <<< \"3\")",
+      "Bash(tail *)"
     ]
   }
 }
