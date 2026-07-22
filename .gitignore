@@ -7,3 +7,4 @@
 
 # Not required 
 node_modules/
+__pycache__/
