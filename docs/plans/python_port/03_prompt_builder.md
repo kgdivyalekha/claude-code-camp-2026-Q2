@@ -47,6 +47,7 @@ week1_baseline/python/03_prompt_builder/
 ├── src/
 │   └── boukensha/
 │       ├── __init__.py              # Package exports (all public classes)
+│       ├── config.py                # Config class (copy from 02_the_registry)
 │       ├── tool.py                  # Tool dataclass (copy from 02_the_registry)
 │       ├── message.py               # Message dataclass (copy from 02_the_registry)
 │       ├── context.py               # Context class (copy from 02_the_registry)
@@ -55,8 +56,8 @@ week1_baseline/python/03_prompt_builder/
 │       ├── prompt_builder.py        # PromptBuilder class (NEW)
 │       ├── tasks/
 │       │   ├── __init__.py          # Re-exports Base and Player
-│       │   ├── base.py              # Base task class with provider/model/prompt logic (NEW)
-│       │   └── player.py            # Player task class (NEW)
+│       │   ├── base.py              # Base task class (copy from 02_the_registry — already complete)
+│       │   └── player.py            # Player task class (copy from 02_the_registry)
 │       └── backends/
 │           ├── __init__.py          # Backend exports
 │           ├── base.py              # BackendBase - shared model validation/estimation (NEW)
@@ -74,16 +75,22 @@ week1_baseline/python/03_prompt_builder/
 ```
 
 ### Already Ported (available from 02_the_registry)
+- **config.py**: Config class (needed by `example.py`; the original draft of this
+  plan omitted it from the tree and the file checklist below — that omission
+  would have broken `from boukensha import Config` in the example)
 - **tool.py**: Tool dataclass
 - **message.py**: Message dataclass
 - **context.py**: Context class
 - **errors.py**: UnknownToolError (will add UnsupportedModelError)
 - **registry.py**: Registry class
+- **tasks/base.py**: Base task class — already has the full provider/model/prompt
+  contract (`provider()`, `model()`, `is_prompt_override()`, `prompt()`,
+  `system_prompt()`) written a step ahead of the Ruby staging. Copy unchanged;
+  see the note in "Porting Plan" section 1 below.
+- **tasks/player.py**: Concrete player task — copy unchanged.
 
 ### New in This Step
 - **errors.py**: Add UnsupportedModelError exception
-- **tasks/base.py**: Base task class with provider/model resolution and prompt reading
-- **tasks/player.py**: Concrete player task
 - **prompt_builder.py**: PromptBuilder class
 - **backends/__init__.py**: Backend package exports
 - **backends/base.py**: BackendBase with model validation and cost estimation
@@ -119,6 +126,23 @@ pip install -e week1_baseline/python/03_prompt_builder
 ## Porting Plan: File by File
 
 ### 1. Tasks: Base (`lib/boukensha/tasks/base.rb` → `src/boukensha/tasks/base.py`)
+
+**Do not re-derive this file.** `week1_baseline/python/02_the_registry/src/boukensha/tasks/base.py`
+already implements the full Ruby contract below — `provider()`, `model()`, `is_prompt_override()`,
+`prompt()`, `system_prompt()` — and it is correct and already in use. Copy it verbatim into
+`03_prompt_builder/src/boukensha/tasks/base.py`.
+
+An earlier draft of this plan proposed rewriting this file from scratch and introduced two
+regressions that the copy-forward avoids:
+- it renamed the predicate to `prompt_override()`, dropping the `is_` prefix that 00_config's
+  Decisions established for Ruby `?`-suffixed methods (`prompt_override?` → `is_prompt_override`) —
+  copying the existing file keeps that convention intact.
+- it defined `_fetch` as `settings.get(key) or settings.get(key)` — the same call twice, a dead
+  leftover from trying to replicate Ruby's string/symbol dual-key hash lookup. That distinction
+  doesn't exist in Python: `yaml.safe_load()` always produces string keys, so a single `.get(key)`
+  is correct (see the 00_config plan's "Dictionary/Hash Access" section).
+
+For reference, here is the Ruby source and the **existing, already-correct** Python port:
 
 **Ruby**:
 ```ruby
@@ -176,110 +200,100 @@ module Boukensha
 end
 ```
 
-**Python**:
+**Python** (existing file, copy as-is from `02_the_registry`):
 ```python
-import os
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Optional
 
 
-class Base:
-    """Base class for task configuration.
-    
-    Provides provider/model resolution and prompt file reading.
-    Subclasses must set task_name.
-    """
-    task_name: str = ""
+class Base(ABC):
+    """Abstract stateless task. All behaviour is expressed as classmethods
+    that accept a settings dict — no instances are created. Concrete
+    subclasses define ``task_name``."""
 
     @classmethod
-    def provider(cls, settings: Dict[str, Any]) -> str:
-        value = cls._fetch(settings, "provider")
+    @abstractmethod
+    def task_name(cls) -> str:
+        raise NotImplementedError(f"{cls.__name__} must define task_name()")
+
+    @classmethod
+    def provider(cls, settings: dict[str, Any]) -> str:
+        value = settings.get("provider")
         if not value:
-            raise ValueError(
-                f"tasks.{cls.task_name}.provider is required in settings.yml"
-            )
+            raise ValueError(f"tasks.{cls.task_name()}.provider is required in settings.yaml")
         return value
 
     @classmethod
-    def model(cls, settings: Dict[str, Any]) -> str:
-        value = cls._fetch(settings, "model")
+    def model(cls, settings: dict[str, Any]) -> str:
+        value = settings.get("model")
         if not value:
-            raise ValueError(
-                f"tasks.{cls.task_name}.model is required in settings.yml"
-            )
+            raise ValueError(f"tasks.{cls.task_name()}.model is required in settings.yaml")
         return value
 
     @classmethod
-    def prompt_override(cls, settings: Dict[str, Any], prompt: str = "system") -> bool:
-        node = cls._fetch(settings, "prompt_override")
+    def is_prompt_override(cls, settings: dict[str, Any], prompt: str = "system") -> bool:
+        node = settings.get("prompt_override")
         if not isinstance(node, dict):
             return False
-        return node.get(prompt, False) is True
+        return node.get(prompt) is True
 
     @classmethod
     def prompt(
         cls,
-        settings: Dict[str, Any],
+        settings: dict[str, Any],
         name: str = "system",
-        user_prompts_dir: Optional[str] = None,
-        default_prompts_dir: Optional[str] = None,
+        user_prompts_dir: Optional[Path] = None,
+        default_prompts_dir: Optional[Path] = None,
     ) -> Optional[str]:
-        if cls.prompt_override(settings, name):
-            text = cls._read_user_prompt(name, user_prompts_dir=user_prompts_dir)
-            if text is not None:
+        if cls.is_prompt_override(settings, name):
+            text = cls._read_user_prompt(name, user_prompts_dir)
+            if text:
                 return text
-        return cls._read_default_prompt(name, default_prompts_dir=default_prompts_dir)
+
+        return cls._read_default_prompt(name, default_prompts_dir)
 
     @classmethod
     def system_prompt(
         cls,
-        settings: Dict[str, Any],
-        user_prompts_dir: Optional[str] = None,
-        default_prompts_dir: Optional[str] = None,
+        settings: dict[str, Any],
+        user_prompts_dir: Optional[Path] = None,
+        default_prompts_dir: Optional[Path] = None,
     ) -> Optional[str]:
         return cls.prompt(
-            settings, "system",
-            user_prompts_dir=user_prompts_dir,
-            default_prompts_dir=default_prompts_dir,
+            settings, "system", user_prompts_dir=user_prompts_dir, default_prompts_dir=default_prompts_dir
         )
 
     @classmethod
-    def _fetch(cls, settings: Dict[str, Any], key: str) -> Any:
-        """Fetch a key from settings, checking both string and underscore forms."""
-        return settings.get(key) or settings.get(key)
-
-    @classmethod
-    def _read_user_prompt(
-        cls, prompt_name: str, user_prompts_dir: Optional[str] = None
-    ) -> Optional[str]:
+    def _read_user_prompt(cls, prompt_name: str, user_prompts_dir: Optional[Path]) -> Optional[str]:
         if not user_prompts_dir:
             return None
-        path = os.path.join(user_prompts_dir, cls.task_name, f"{prompt_name}.md")
-        return cls._read_file(path)
+        return cls._read_file(Path(user_prompts_dir) / cls.task_name() / f"{prompt_name}.md")
 
     @classmethod
-    def _read_default_prompt(
-        cls, prompt_name: str, default_prompts_dir: Optional[str] = None
-    ) -> Optional[str]:
+    def _read_default_prompt(cls, prompt_name: str, default_prompts_dir: Optional[Path]) -> Optional[str]:
         if not default_prompts_dir:
             return None
-        path = os.path.join(default_prompts_dir, f"{prompt_name}.md")
-        return cls._read_file(path)
+        return cls._read_file(Path(default_prompts_dir) / f"{prompt_name}.md")
 
-    @classmethod
-    def _read_file(cls, path: str) -> Optional[str]:
-        if os.path.isfile(path):
-            with open(path, "r") as f:
-                return f.read().strip()
-        return None
+    @staticmethod
+    def _read_file(path: Path) -> Optional[str]:
+        return path.read_text().strip() if path.exists() else None
 ```
 
-**Key translation**:
-- `class << self; private` → `@classmethod` with leading underscore convention
-- Ruby symbols → Python strings for settings keys
+**Key translation** (already applied in the existing file):
+- `class << self; private` → plain `@classmethod`s, private ones prefixed `_`
+- `prompt_override?` → `is_prompt_override` (00_config's predicate-naming convention)
+- Ruby symbols → Python strings for settings keys (no dual-key lookup needed —
+  `yaml.safe_load()` only ever produces string keys)
 - `raise(ArgumentError)` → `raise ValueError`
-- `File.join` → `os.path.join`
-- `File.exist?` → `os.path.isfile`
-- `File.read(path).strip` → `open(path).read().strip`
+- `task_name` is a **classmethod** (`cls.task_name()`), not a plain class attribute — call it
+  accordingly everywhere (`Player.task_name()`, not `Player.task_name`)
+- `File.join` → `Path(...) / ...`
+- `File.exist?` → `Path.exists()`
+- `File.read(path).strip` → `Path.read_text().strip()`
 
 ---
 
@@ -296,13 +310,15 @@ module Boukensha
 end
 ```
 
-**Python**:
+**Python** (existing file, copy as-is from `02_the_registry`):
 ```python
 from .base import Base
 
 
 class Player(Base):
-    task_name = "player"
+    @classmethod
+    def task_name(cls) -> str:
+        return "player"
 ```
 
 ---
@@ -399,6 +415,15 @@ end
 ```
 
 **Python**:
+
+> **Fixed bug from the earlier draft**: the original version of this section defined a
+> `@classmethod model_info(cls, model)` *and* an instance `@property model_info(self)` in the same
+> class body. In Python the second `def` silently overwrites the first in the class's namespace —
+> `BackendBase.model_info` ends up being the property object, not the classmethod. `__init__` then
+> called `self.__class__.model_info(self.model)`, which tries to *call* a property object and raises
+> `TypeError: 'property' object is not callable`. Every concrete backend inherits this `__init__`, so
+> none of them could be constructed. Fixed below by renaming the classmethod to `model_info_for`.
+
 ```python
 from typing import Any, ClassVar, Dict, Optional
 
@@ -415,19 +440,19 @@ class BackendBase:
 
     def __init__(self, model: str) -> None:
         self.model: str = self.__class__.validate_model(model)
-        self._model_info: Dict[str, Any] = self.__class__.model_info(self.model)
+        self._model_info: Dict[str, Any] = self.__class__.model_info_for(self.model)
 
     @classmethod
     def models(cls) -> Dict[str, Dict[str, Any]]:
         return cls.MODELS
 
     @classmethod
-    def model_info(cls, model: str) -> Optional[Dict[str, Any]]:
+    def model_info_for(cls, model: str) -> Optional[Dict[str, Any]]:
         return cls.MODELS.get(model)
 
     @classmethod
     def validate_model(cls, model: str) -> str:
-        if cls.model_info(model):
+        if cls.model_info_for(model):
             return model
         supported = ", ".join(sorted(cls.MODELS.keys()))
         raise UnsupportedModelError(
@@ -437,6 +462,9 @@ class BackendBase:
 
     @property
     def model_info(self) -> Dict[str, Any]:
+        """Metadata dict for the instance's configured model (not to be confused
+        with the `model_info_for(model)` classmethod, which looks up any model
+        by name before the instance exists)."""
         return self._model_info
 
     @property
@@ -474,8 +502,13 @@ class BackendBase:
 **Key translation**:
 - `attr_reader :model` → `@property model` (via `self.model` from `__init__`)
 - `const_get(:MODELS)` → `cls.MODELS` (dict class variable)
+- Ruby's overloaded `model_info` (class-level `self.model_info(model)` lookup vs.
+  instance-level `model_info` reader) can't be replicated under one name in Python — the
+  classmethod is renamed `model_info_for(model)`; the instance `@property model_info` keeps
+  the Ruby-facing name since it's the one calling code actually reads
 - Ruby `fetch(key)` → Python dict `.get(key)` or `[key]` (for required keys)
-- Ruby `rescue NameError` → not needed in Python since `MODELS` is a ClassVar
+- Ruby `rescue NameError` → not needed in Python since `MODELS` is a ClassVar (but see Common
+  Pitfall #5 below — an empty `MODELS` fails silently rather than with a clear error)
 - `model.to_s` → `model` (already a string)
 
 ---
@@ -1149,6 +1182,18 @@ class PromptBuilder:
   - Gemini: `to_messages(messages)` — system in separate `systemInstruction` field
 - `to_api_payload` always passes `context` and `max_output_tokens` to the backend
 
+**Known quirk, carried over from Ruby on purpose**: `PromptBuilder.to_messages()` always calls
+`self.backend.to_messages(self.context.messages)` with a single argument. That's correct for
+Anthropic and Gemini, but OpenAI/Ollama/OllamaCloud backends require two arguments
+(`to_messages(system, messages)`) — calling `builder.to_messages()` directly for those three
+providers raises `TypeError: to_messages() missing 1 required positional argument`. This isn't a
+porting mistake: the Ruby source has the identical bug (`@backend.to_messages(@context.messages)`
+against a Ruby method that also requires two args for those backends). Neither the Ruby nor the
+planned Python `example.py` ever calls the standalone `to_messages()` — only `to_api_payload()` is
+exercised, and that path always calls each backend's `to_messages` with the correct arity
+internally. Keep this method for parity, but don't spend time "fixing" it — that would be a
+deviation from the Ruby original, not a bug fix.
+
 ---
 
 ### 11. Package Exports (`lib/boukensha.rb` → `src/boukensha/__init__.py`)
@@ -1156,9 +1201,10 @@ class PromptBuilder:
 **Python**:
 ```python
 # Boukensha prompt builder — backends, tasks, and delegate builder
-# Re-uses struct and registry classes from prior steps
+# Re-uses config, struct, and registry classes from prior steps
 
-# Local struct and registry classes
+# Local struct, config, and registry classes
+from .config import Config  # noqa: F401
 from .tool import Tool  # noqa: F401
 from .message import Message  # noqa: F401
 from .context import Context  # noqa: F401
@@ -1171,6 +1217,7 @@ from . import tasks  # noqa: F401
 from . import backends  # noqa: F401
 
 __all__ = [
+    "Config",
     "Tool",
     "Message",
     "Context",
@@ -1182,6 +1229,11 @@ __all__ = [
     "backends",
 ]
 ```
+
+> The earlier draft omitted `Config` from this file entirely (and from the target-structure tree
+> and the reuse list above), while `example.py`'s final block still did `from boukensha import
+> Config` — that import would have raised `ImportError: cannot import name 'Config'`. Fixed by
+> adding the import/export here and adding `config.py` to the files list.
 
 ### Backends `__init__.py` (`src/boukensha/backends/__init__.py`):
 
@@ -1217,30 +1269,23 @@ __all__ = ["Base", "Player"]
 ### 12. Example (`examples/example.rb` → `examples/example.py`)
 
 **Python**:
+
+Unlike `02_the_registry`'s example (which pops `boukensha` out of `sys.modules` mid-script to
+switch between a "local" and an "installed" copy of the package), this step's `boukensha` package
+is fully self-contained — `config.py`, `tool.py`, `tasks/`, etc. are all real files inside
+`03_prompt_builder/src/boukensha/`, not re-exports of a different installed package. So the
+sys.path/sys.modules dance isn't needed here: a single ordinary import block is enough, and
+`Config.PROMPTS_DIR` (established in 00_config, carried through unchanged) is reused instead of
+recomputing the prompts path by hand.
+
 ```python
-import os
-import sys
 import json
+import os
 from pathlib import Path
 
-# Add local src directory to path so we can import the local boukensha package
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-# Import local structs first (these don't depend on installed boukensha)
-from boukensha import (
-    Context, Tool, Message, Registry, UnknownToolError,
-    PromptBuilder, backends,
-)
+from boukensha import Config, Context, PromptBuilder, Registry
 from boukensha.tasks import Player
 from boukensha.backends import Anthropic, Gemini, Ollama, OllamaCloud, OpenAI
-
-# Remove local src from path and clear boukensha from sys.modules for config import
-sys.path.pop(0)
-sys.modules.pop('boukensha', None)
-sys.modules.pop('boukensha.tasks', None)
-sys.modules.pop('boukensha.tasks.player', None)
-
-from boukensha import Config
 
 os.environ.setdefault(
     "BOUKENSHA_DIR",
@@ -1250,13 +1295,10 @@ os.environ.setdefault(
 config = Config()
 player_settings = config.tasks("player") or {}
 
-# Use the prompts shipped with this package
-DEFAULT_PROMPTS_DIR = str(Path(__file__).parent.parent / "prompts")
-
 system_prompt = Player.system_prompt(
     player_settings,
     user_prompts_dir=config.user_prompts_dir,
-    default_prompts_dir=DEFAULT_PROMPTS_DIR,
+    default_prompts_dir=Config.PROMPTS_DIR,
 )
 
 ctx = Context(task=Player, system=system_prompt)
@@ -1284,15 +1326,15 @@ provider = Player.provider(player_settings)
 model = Player.model(player_settings)
 
 if provider == "anthropic":
-    backend = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""), model=model)
+    backend = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"], model=model)
 elif provider == "ollama":
     backend = Ollama(model=model)
 elif provider == "ollama_cloud":
-    backend = OllamaCloud(api_key=os.environ.get("OLLAMA_API_KEY", ""), model=model)
+    backend = OllamaCloud(api_key=os.environ["OLLAMA_API_KEY"], model=model)
 elif provider == "openai":
-    backend = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""), model=model)
+    backend = OpenAI(api_key=os.environ["OPENAI_API_KEY"], model=model)
 elif provider == "gemini":
-    backend = Gemini(api_key=os.environ.get("GEMINI_API_KEY", ""), model=model)
+    backend = Gemini(api_key=os.environ["GEMINI_API_KEY"], model=model)
 else:
     raise ValueError(f"Unsupported provider for player task: {provider}")
 
@@ -1306,6 +1348,13 @@ print(f"Model: {model}")
 print()
 print(json.dumps(builder.to_api_payload(), indent=2, default=str))
 ```
+
+**Key translation notes**:
+- `ENV.fetch("ANTHROPIC_API_KEY")` → `os.environ["ANTHROPIC_API_KEY"]` (both raise loudly —
+  `KeyError` in Python — when the variable is missing; using `.get(..., "")` here would silently
+  swallow a missing key instead of matching Ruby's fail-fast behavior)
+- No `pip install -e` of a *different* `boukensha` package is involved — see the note above the
+  code block
 
 ---
 
@@ -1340,7 +1389,7 @@ pip list | grep boukensha
    - Each backend: Verify `to_tools` returns correct structure (Anthropic uses `input_schema`, OpenAI/Ollama use `function` envelope, Gemini uses `functionDeclarations`)
 4. **PromptBuilder**: Verify delegation — `to_messages`, `to_tools`, `to_api_payload`, `headers`, `url` each delegate to the backend
 5. **Tasks.Base**: Verify `provider()` and `model()` raise `ValueError` when settings are missing
-6. **Tasks.Player**: Verify `task_name == "player"`
+6. **Tasks.Player**: Verify `task_name() == "player"` (it's a classmethod, not a plain attribute)
 7. **Example smoke test**: Run `python examples/example.py`; verify output is valid JSON matching the provider's API shape
 
 ### Full integration test:
@@ -1433,10 +1482,10 @@ The output should be valid JSON for the selected provider's API format. For exam
 ```bash
 source venv/bin/activate
 python -c "
-from boukensha import PromptBuilder, UnsupportedModelError, backends
+from boukensha import Config, PromptBuilder, UnsupportedModelError, backends
 from boukensha.tasks import Base, Player
 print('Imports work')
-print(f'Player.task_name = {Player.task_name}')
+print(f'Player.task_name() = {Player.task_name()}')
 # Verify UnsupportedModelError
 try:
     backends.Anthropic(api_key='', model='nonexistent-model')
@@ -1480,11 +1529,12 @@ except UnsupportedModelError:
 
 ## Files to Create/Modify
 
-1. Create `src/boukensha/tasks/base.py` — Base task class
-2. Create `src/boukensha/tasks/player.py` — Player task class
+1. Copy `src/boukensha/tasks/base.py` from 02_the_registry — already complete, do not rewrite
+2. Copy `src/boukensha/tasks/player.py` from 02_the_registry
 3. Create `src/boukensha/tasks/__init__.py` — task exports
 4. Create `src/boukensha/backends/__init__.py` — backend exports
-5. Create `src/boukensha/backends/base.py` — BackendBase
+5. Create `src/boukensha/backends/base.py` — BackendBase (watch for the `model_info` naming
+   collision described in section 4 — use `model_info_for` for the classmethod)
 6. Create `src/boukensha/backends/anthropic.py` — Anthropic backend
 7. Create `src/boukensha/backends/gemini.py` — Gemini backend
 8. Create `src/boukensha/backends/ollama.py` — Ollama backend
@@ -1492,13 +1542,18 @@ except UnsupportedModelError:
 10. Create `src/boukensha/backends/openai.py` — OpenAI backend
 11. Modify `src/boukensha/errors.py` — add UnsupportedModelError
 12. Create `src/boukensha/prompt_builder.py` — PromptBuilder
-13. Update `src/boukensha/__init__.py` — export PromptBuilder, tasks, backends, UnsupportedModelError
-14. Copy `src/boukensha/tool.py` from 02_the_registry
-15. Copy `src/boukensha/message.py` from 02_the_registry
-16. Copy `src/boukensha/context.py` from 02_the_registry
-17. Copy `src/boukensha/registry.py` from 02_the_registry
-18. Create `examples/example.py` — smoke test
-19. Copy `prompts/system.md` — default system prompt
-20. Create `pyproject.toml` — package config
-21. Create `README.md` — usage docs
-22. Create `week1_baseline/bin/python/03_prompt_builder` — executable launcher
+13. Update `src/boukensha/__init__.py` — export Config, PromptBuilder, tasks, backends,
+    UnsupportedModelError (Config was missing from the original draft's exports)
+14. Copy `src/boukensha/config.py` from 02_the_registry (missing from the original draft's file
+    list; required by `example.py`'s `from boukensha import Config`)
+15. Copy `src/boukensha/tool.py` from 02_the_registry
+16. Copy `src/boukensha/message.py` from 02_the_registry
+17. Copy `src/boukensha/context.py` from 02_the_registry
+18. Copy `src/boukensha/registry.py` from 02_the_registry
+19. Create `examples/example.py` — smoke test (plain imports, no sys.path/sys.modules dance —
+    see section 12)
+20. Copy `prompts/system.md` — default system prompt
+21. Create `pyproject.toml` — package config
+22. Create `README.md` — usage docs
+23. `week1_baseline/bin/python/03_prompt_builder` — executable launcher already exists (untracked
+    file, mirrors the `bin/python/02_the_registry` shape); no change needed

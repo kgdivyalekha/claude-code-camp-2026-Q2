@@ -14,7 +14,16 @@
       "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && chmod +x week1_baseline/bin/python/00_config week1_baseline/bin/ruby/00_config && ./venv/bin/pip install -e week1_baseline/python/00_config 2>&1 | tail -20\")",
       "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && ./week1_baseline/bin/python/00_config\")",
       "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && ./week1_baseline/bin/ruby/00_config\")",
-      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/bin/ruby && cd ../../ruby/00_config && pwd && ls examples/example.rb\")"
+      "PowerShell(wsl.exe -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/bin/ruby && cd ../../ruby/00_config && pwd && ls examples/example.rb\")",
+      "Bash(git show *)",
+      "Read(//tmp/**)",
+      "Bash(./venv/bin/python3.12 --version)",
+      "Bash(compgen -c python)",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(where wsl *)",
+      "Bash(wsl --version)",
+      "Bash(wsl.exe bash *)"
     ]
   }
 }
