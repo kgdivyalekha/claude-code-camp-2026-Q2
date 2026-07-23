@@ -1,0 +1,33 @@
+PATH
+  remote: ../../../week0_explore/mud_manager
+  specs:
+    mud_manager (0.1.0)
+
+PATH
+  remote: .
+  specs:
+    boukensha (0.10.0)
+      mud_manager (~> 0.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    dotenv (3.2.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux-gnu
+
+DEPENDENCIES
+  boukensha!
+  dotenv
+  mud_manager!
+
+CHECKSUMS
+  boukensha (0.10.0)
+  bundler (4.0.17) sha256=214e21431b5665dd2f99df8a5511c6b151d7a72e8015c8b38f8b775b61cbb6c1
+  dotenv (3.2.0)
+  mud_manager (0.1.0)
+
+BUNDLED WITH
+  4.0.17
