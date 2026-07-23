@@ -56,7 +56,13 @@
       "Bash(./venv/bin/python examples/example.py)",
       "PowerShell(head *)",
       "Bash(git add *)",
-      "Bash(timeout 5 ./venv/bin/python3 -c ' *)"
+      "Bash(timeout 5 ./venv/bin/python3 -c ' *)",
+      "Bash(gem install *)",
+      "Bash(ruby --version)",
+      "Bash(./bin/boukensha)",
+      "Bash(gem list *)",
+      "Bash(gem which *)",
+      "Bash(BOUKENSHA_PATH=/home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/09_global_executable BOUKENSHA_DEBUG=1 boukensha)"
     ]
   }
 }
