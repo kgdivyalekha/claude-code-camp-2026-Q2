@@ -46,7 +46,8 @@
       "Bash(python python/06_the_logger/examples/example.py)",
       "PowerShell(wsl pwd)",
       "PowerShell(wsl bash -c \"cd week1_baseline && ./bin/python/06_the_logger\" 2>&1 | Select-Object -First 50)",
-      "PowerShell(wsl bash -c \"cd week1_baseline && ./bin/python/06_the_logger 2>&1 | head -20\")"
+      "PowerShell(wsl bash -c \"cd week1_baseline && ./bin/python/06_the_logger 2>&1 | head -20\")",
+      "Bash(bash ./.claude/skills/port-to-python.sh 07)"
     ]
   }
 }
