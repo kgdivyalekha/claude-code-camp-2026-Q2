@@ -20,11 +20,11 @@ module Boukensha
 
     HELP = <<~HELP
       Commands:
-        /quiet   suppress logging output
-        /loud    re-enable logging output
-        /clear   wipe conversation history (tools stay)
-        /exit    leave the REPL
-        /help    show this message
+        /quiet       suppress logging output
+        /loud        re-enable logging output
+        /clear       wipe conversation history (tools stay)
+        /exit, exit  leave the REPL
+        /help        show this message
     HELP
 
     def initialize(context:, registry:, builder:, client:, logger:, config_dir: nil, provider: nil, model: nil, version: nil, api_key: nil, task_settings: nil, max_iterations: nil, max_output_tokens: nil)
@@ -58,7 +58,7 @@ module Boukensha
         next if input.empty?
 
         case input
-        when "/exit", "/quit"
+        when "/exit", "/quit", "exit", "quit"
           puts "Goodbye."
           break
         when "/help"
@@ -100,9 +100,9 @@ module Boukensha
           config:    #{config_line}
           provider:  #{provider_line}
 
-          /quiet or /loud   toggle logging
-          /clear           reset conversation history
-          /exit or /quit    leave the REPL
+          /quiet or /loud       toggle logging
+          /clear                reset conversation history
+          /exit, exit or /quit  leave the REPL
 
       BANNER
     end
