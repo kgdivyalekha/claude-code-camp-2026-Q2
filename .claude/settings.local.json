@@ -31,7 +31,12 @@
       "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\")",
       "Bash(bash \"./.claude/skills/port-to-python.sh\" 04)",
       "Bash(timeout 30 bash \"./.claude/skills/port-to-python.sh\" 04 <<< \"3\")",
-      "Bash(tail *)"
+      "Bash(tail *)",
+      "Bash(grep -E '\\\\.py$')",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week1_baseline/python/**)",
+      "Bash(python -m py_compile src/boukensha/agent.py src/boukensha/client.py src/boukensha/context.py src/boukensha/message.py src/boukensha/errors.py src/boukensha/prompt_builder.py src/boukensha/backends/anthropic.py src/boukensha/backends/openai.py src/boukensha/backends/gemini.py src/boukensha/backends/ollama.py src/boukensha/backends/ollama_cloud.py)",
+      "Bash(bash bin/python/05_agent_loop)",
+      "Bash(./bin/python/05_agent_loop)"
     ]
   }
 }

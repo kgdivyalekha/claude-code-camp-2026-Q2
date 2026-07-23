@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boukensha"
+version = "0.5.0"
+description = "Boukensha agent loop — sends requests, dispatches tools, and knows when to stop"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
