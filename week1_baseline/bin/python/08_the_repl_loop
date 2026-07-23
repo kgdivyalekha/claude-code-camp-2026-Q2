@@ -1,7 +1,7 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-PYTHON_DIR="$PROJECT_ROOT/python/07_the_run_dsl"
+PYTHON_DIR="$PROJECT_ROOT/python/08_the_repl_loop"
 
 cd "$PYTHON_DIR" || exit 1
 source ./venv/bin/activate

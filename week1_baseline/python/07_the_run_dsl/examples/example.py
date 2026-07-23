@@ -1,13 +1,25 @@
 import os
 from pathlib import Path
 
+# Set BOUKENSHA_DIR to the project's .boukensha directory BEFORE importing boukensha
+# This ensures config loads from the correct location
+project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+os.environ["BOUKENSHA_DIR"] = str(project_root / ".boukensha")
+
 from boukensha import Config, Context, PromptBuilder, Client, Registry, Agent
 from boukensha.tasks import Player
 from boukensha.backends import Anthropic, Gemini, Ollama, OllamaCloud, OpenAI
 
-os.environ["BOUKENSHA_DIR"] = str(Path(__file__).resolve().parent.parent.parent.parent.parent / ".boukensha")
-
 config = Config()
+
+# Debug: show what's loaded
+player_settings = config.tasks("player")
+print(f"BOUKENSHA_DIR: {config.dir}")
+print(f"Player settings: {player_settings}")
+if player_settings:
+    print(f"  Provider: {player_settings.get('provider')}")
+    print(f"  Model: {player_settings.get('model')}")
+print()
 player_settings = config.tasks("player") or {}
 
 system_prompt = Player.system_prompt(

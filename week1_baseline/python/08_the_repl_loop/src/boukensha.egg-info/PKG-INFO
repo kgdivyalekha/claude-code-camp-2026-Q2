@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: boukensha
+Version: 0.8.0
+Summary: Boukensha agent loop with interactive REPL — tracks iterations, API calls, and responses to JSONL
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Requires-Dist: python-dotenv
+Provides-Extra: dev

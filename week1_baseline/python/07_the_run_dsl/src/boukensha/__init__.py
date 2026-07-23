@@ -23,6 +23,9 @@ from .agent import Agent  # noqa: F401
 # New in this step (06_the_logger)
 from .logger import Logger  # noqa: F401
 
+# New in step 07 (07_the_run_dsl)
+from .run_dsl import RunDSL  # noqa: F401
+
 # Module-level state for singleton config and debug/quiet flags
 _config = None
 _debug = False
@@ -71,6 +74,126 @@ def quiet_enabled():
     return _quiet
 
 
+def quiet():
+    """Enable quiet mode (suppress logging output) — alias for quiet_on()."""
+    quiet_on()
+
+
+def loud():
+    """Disable quiet mode (enable logging output) — alias for loud_on()."""
+    loud_on()
+
+
+def run(
+    task,
+    system=None,
+    model=None,
+    backend=None,
+    api_key=None,
+    ollama_host="http://localhost:11434",
+    log=None,
+    max_output_tokens=None,
+    tools_fn=None,
+):
+    """One-shot run: send a single task, get a response, return.
+
+    Args:
+        task: The task description (user prompt)
+        system: System prompt (defaults to config)
+        model: Model name (defaults to config)
+        backend: Backend provider name (defaults to config)
+        api_key: API key for the backend
+        ollama_host: Host for Ollama backend
+        log: Logger output destination
+        max_output_tokens: Maximum tokens in response
+        tools_fn: Function that registers tools (receives registry)
+    """
+    from . import PromptBuilder, Client, Agent, Logger, tasks as tasks_module
+    from . import backends as backends_module
+
+    cfg = config()
+    task_class = tasks_module.Player
+    task_settings = cfg.tasks(task_class.task_name) or {}
+
+    if system is None:
+        system = task_class.system_prompt(
+            task_settings,
+            user_prompts_dir=cfg.user_prompts_dir,
+            default_prompts_dir=Config.PROMPTS_DIR,
+        )
+    if model is None:
+        model = task_class.model(task_settings)
+    if backend is None:
+        backend = task_class.provider(task_settings).lower()
+    if api_key is None:
+        import os
+
+        if backend == "anthropic":
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+        elif backend == "openai":
+            api_key = os.environ.get("OPENAI_API_KEY")
+        elif backend == "gemini":
+            api_key = os.environ.get("GEMINI_API_KEY")
+        elif backend == "ollama_cloud":
+            api_key = os.environ.get("OLLAMA_API_KEY")
+
+    ctx = Context(task=task_class, system=system)
+    registry = Registry(ctx)
+
+    if tools_fn:
+        RunDSL(registry).instance_eval(tools_fn)
+
+    if backend == "anthropic":
+        be = backends_module.Anthropic(api_key=api_key, model=model)
+    elif backend == "openai":
+        be = backends_module.OpenAI(api_key=api_key, model=model)
+    elif backend == "gemini":
+        be = backends_module.Gemini(api_key=api_key, model=model)
+    elif backend == "ollama":
+        be = backends_module.Ollama(host=ollama_host, model=model)
+    elif backend == "ollama_cloud":
+        be = backends_module.OllamaCloud(api_key=api_key, model=model)
+    else:
+        raise ValueError(
+            f"Unknown backend {backend}. Use 'anthropic', 'openai', 'gemini', 'ollama', or 'ollama_cloud'."
+        )
+
+    builder = PromptBuilder(ctx, be)
+    client = Client(builder)
+    effective_max_iterations = task_class.max_iterations(task_settings)
+    effective_max_output_tokens = max_output_tokens or task_class.max_output_tokens(
+        task_settings
+    )
+    logger = Logger(
+        log=log,
+        snapshot={
+            "task": task_class.task_name,
+            "max_iterations": effective_max_iterations,
+            "max_output_tokens": effective_max_output_tokens,
+            "model": model,
+            "provider": backend,
+        },
+    )
+
+    agent = Agent(
+        context=ctx,
+        registry=registry,
+        builder=builder,
+        client=client,
+        logger=logger,
+        task_settings=task_settings,
+        max_iterations=effective_max_iterations,
+        max_output_tokens=effective_max_output_tokens,
+    )
+
+    ctx.add_message("user", task)
+    try:
+        return agent.run()
+    finally:
+        if logger:
+            logger.close()
+
+
 __all__ = [
     "Config",
     "Tool",
@@ -85,6 +208,7 @@ __all__ = [
     "Client",
     "Agent",
     "Logger",
+    "RunDSL",
     "tasks",
     "backends",
     "config",
@@ -94,4 +218,7 @@ __all__ = [
     "quiet_on",
     "loud_on",
     "quiet_enabled",
+    "quiet",
+    "loud",
+    "run",
 ]
