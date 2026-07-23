@@ -1,7 +1,7 @@
 tasks:
   player:
-    provider: ollama 
-    model: qwen3:8b
+    provider: anthropic 
+    model: claude-haiku-4-5
     prompt_override:
       system: true
 mud:
