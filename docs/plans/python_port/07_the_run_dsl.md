@@ -1,6 +1,6 @@
 # Python Port: Boukensha The Run DSL (07_the_run_dsl)
 
-**Status**: Planning — This document defines the port plan for `week1_baseline/ruby/07_the_run_dsl/` to Python. Reconciled against the reference plan at `docs/plans/python_port/07_the_run_dsl.md` on the `omenking/claude-code-camp-2026-Q2` `main` branch.
+**Status**: Planning — This document defines the port plan for `week1_baseline/ruby/07_the_run_dsl/` to Python. 
 
 Every previous step required manually creating and wiring together a `Context`, `Registry`, `Backend`, `PromptBuilder`, `Client`, `Logger`, and `Agent`. This step adds one top-level entry point, `Boukensha.run(task:, ...) { ... }`, that hides all of that plumbing behind a single call plus a small block-based DSL for registering tools. It is purely additive — no existing class's public behavior changes.
 

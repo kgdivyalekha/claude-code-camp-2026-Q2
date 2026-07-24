@@ -51,7 +51,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(wsl.exe --version)",
       "Bash(wsl.exe *)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(wsl bash *)"
     ]
   }
 }
