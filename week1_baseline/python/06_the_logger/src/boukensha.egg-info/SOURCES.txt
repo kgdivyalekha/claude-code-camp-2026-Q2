@@ -10,6 +10,7 @@ src/boukensha/logger.py
 src/boukensha/message.py
 src/boukensha/prompt_builder.py
 src/boukensha/registry.py
+src/boukensha/state.py
 src/boukensha/tool.py
 src/boukensha.egg-info/PKG-INFO
 src/boukensha.egg-info/SOURCES.txt

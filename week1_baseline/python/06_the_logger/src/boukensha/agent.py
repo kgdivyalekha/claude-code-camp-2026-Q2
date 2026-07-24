@@ -34,7 +34,7 @@ class Agent:
         self.registry = registry
         self.builder = builder
         self.client = client
-        self.logger = logger or Logger()
+        self.logger = logger if logger is not None else Logger()
         self.max_iterations = self._resolve_max_iterations(task_settings, max_iterations)
         self.max_output_tokens = self._resolve_max_output_tokens(task_settings, max_output_tokens)
         self.iteration = 0
@@ -49,7 +49,6 @@ class Agent:
                 return self._wrap_up("max_iterations")
 
             self.iteration += 1
-            print(f"[iteration {self.iteration}/{self.max_iterations}]")
             self.logger.iteration(n=self.iteration, max=self.max_iterations)
             self.logger.prompt(messages=self.context.messages, tools=self.context.tools)
 
@@ -117,13 +116,11 @@ class Agent:
             text = self._extract_text(
                 self.builder.parse_response(response)["content"]
             )
-            if text.strip():
-                self._log_response(text=text, response=response)
-                self.logger.turn_end(reason=reason, iterations=self.iteration)
-                return text
-            msg = self._fallback_message(reason)
+            if not text.strip():
+                text = self._fallback_message(reason)
+            self._log_response(text=text, response=response)
             self.logger.turn_end(reason=reason, iterations=self.iteration)
-            return msg
+            return text
         except ApiError:
             msg = self._fallback_message(reason)
             self.logger.turn_end(reason=reason, iterations=self.iteration)
@@ -141,48 +138,34 @@ class Agent:
             block["text"] for block in content if block.get("type") == "text"
         )
 
-    def _handle_tool_calls(
-        self, content: List[Dict[str, Any]], response: Dict[str, Any]
-    ) -> None:
-        """Store the assistant message, then dispatch each tool call."""
+    def _handle_tool_calls(self, content: List[Dict[str, Any]], response: Dict[str, Any]) -> None:
+        """Log reasoning, store the assistant message, then dispatch each tool call."""
         tool_calls = [b for b in content if b.get("type") == "tool_use"]
 
-        # Log response with reasoning or tool call summary
         reasoning = self._extract_text(content)
-        if reasoning.strip():
-            self._log_response(text=reasoning, response=response)
-        else:
-            call_summary = f"(tool use — {len(tool_calls)} call{'s' if len(tool_calls) != 1 else ''})"
-            self._log_response(text=call_summary, response=response)
+        placeholder = f"(tool use — {len(tool_calls)} call{'s' if len(tool_calls) != 1 else ''})"
+        self._log_response(
+            text=reasoning if reasoning.strip() else placeholder, response=response
+        )
 
         self.context.add_message("assistant", content)
 
-        for block in content:
-            if block.get("type") != "tool_use":
-                continue
-
+        for block in tool_calls:
             name = block["name"]
             args = block["input"]
             use_id = block["id"]
 
-            print(f"  tool call → {name}({args})")
             self.logger.tool_call(name=name, args=args)
-
             try:
                 result = self.registry.dispatch(name, args)
-                result_str = str(result)
                 self.logger.tool_result(name=name, result=result, ok=True)
             except Exception as e:
-                result_str = f"ERROR: {type(e).__name__}: {e}"
-                self.logger.tool_result(
-                    name=name, result=result_str, ok=False, error=str(e)
-                )
+                result = f"ERROR: {type(e).__name__}: {e}"
+                self.logger.tool_result(name=name, result=result, ok=False, error=str(e))
 
-            print(f"  tool result → {result_str[:60]}")
-            self.context.add_message("tool_result", result_str, tool_use_id=use_id)
+            self.context.add_message("tool_result", str(result), tool_use_id=use_id)
 
     def _log_response(self, text: str, response: Dict[str, Any]) -> None:
-        """Log a response with usage information."""
         self.logger.response(
             text=text,
             usage=self._normalized_usage(response),
@@ -191,18 +174,15 @@ class Agent:
             backend=self.builder.backend,
         )
 
-    def _normalized_usage(self, response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Extract normalized usage data from response."""
-        # Try direct usage fields first
+    @staticmethod
+    def _normalized_usage(response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if response.get("usage"):
             return response["usage"]
         if response.get("usageMetadata"):
             return response["usageMetadata"]
 
-        # Build usage from available fields for backends that don't provide it
         usage = {}
-        for key in ["prompt_eval_count", "eval_count"]:
+        for key in ("prompt_eval_count", "eval_count"):
             if key in response:
                 usage[key] = response[key]
-
-        return usage if usage else None
+        return usage or None

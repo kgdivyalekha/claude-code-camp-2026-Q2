@@ -11,8 +11,3 @@ class UnsupportedModelError(Exception):
 class ApiError(Exception):
     """Raised when an API request fails after retries are exhausted."""
     pass
-
-
-class LoopError(Exception):
-    """Raised when the agent exceeds its iteration limit."""
-    pass

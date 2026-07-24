@@ -1,2 +1,0 @@
-[console_scripts]
-boukensha = boukensha.boukensha_loader:load_and_start_repl

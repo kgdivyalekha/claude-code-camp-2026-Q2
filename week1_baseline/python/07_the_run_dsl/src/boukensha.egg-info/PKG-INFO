@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: boukensha
-Version: 0.6.0
-Summary: Boukensha with logging — tracks agent iterations, API calls, and responses to JSONL files
-Requires-Python: >=3.10
-Requires-Dist: pyyaml
-Requires-Dist: python-dotenv
-Provides-Extra: dev
