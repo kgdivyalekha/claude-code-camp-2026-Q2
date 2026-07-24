@@ -1,13 +1,7 @@
 PATH
-  remote: ../../../week0_explore/mud_manager
-  specs:
-    mud_manager (0.1.0)
-
-PATH
   remote: .
   specs:
     boukensha (0.10.0)
-      mud_manager (~> 0.1)
 
 GEM
   remote: https://rubygems.org/
@@ -21,7 +15,6 @@ PLATFORMS
 DEPENDENCIES
   boukensha!
   dotenv
-  mud_manager!
 
 BUNDLED WITH
    2.5.19

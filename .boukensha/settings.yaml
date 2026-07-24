@@ -10,3 +10,20 @@ mud:
   port: 4000
   username: queen
   password: password
+
+# Used by week1_baseline/ruby/10_standard_tool_library and later steps: the
+# agent owns no tools of its own, so MUD gameplay tools come from spawning the
+# mud-manager daemon as an MCP server. `command` is an absolute path since
+# every launcher in this repo (bin/ruby/*, bin/python/*) cd's into the step
+# directory before running — a relative path only works if you happen to
+# launch from the repo root yourself.
+mcp_servers:
+  mud:
+    command: /home/system/claude-code-camp-2026-Q2/week0_explore/mud_manager/bin/mud-manager
+    args:    [--mcp]
+    prefix:  tbamud
+    env:
+      MUD_HOST:     localhost
+      MUD_PORT:     4000
+      MUD_NAME:     queen
+      MUD_PASSWORD: password
