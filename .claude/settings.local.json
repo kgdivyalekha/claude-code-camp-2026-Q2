@@ -50,7 +50,8 @@
       "PowerShell(wsl -d Ubuntu -e bash -lc \"python3 '/mnt/c/Users/yaada/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-home-system-claude-code-camp-2026-Q2/a5d15d75-29bc-4c23-a398-9a429ab0d00f/scratchpad/inspect_log.py'\")",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(wsl.exe --version)",
-      "Bash(wsl.exe *)"
+      "Bash(wsl.exe *)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
