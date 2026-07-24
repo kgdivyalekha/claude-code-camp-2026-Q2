@@ -65,7 +65,21 @@
       "Bash(BOUKENSHA_PATH=/home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/09_global_executable BOUKENSHA_DEBUG=1 boukensha)",
       "Bash(bundle install *)",
       "Bash(./bin/ruby/10_standard_tool_library)",
-      "Bash(ruby examples/example.rb)"
+      "Bash(ruby examples/example.rb)",
+      "Bash(./.claude/skills/port-to-python.sh 10)",
+      "Bash(./.claude/skills/port-to-python.sh 09)",
+      "Bash(cp 08_the_repl_loop/README.md 08_the_repl_loop/pyproject.toml 08_the_repl_loop/examples -r 09_global_executable/)",
+      "Bash(cp -r 08_the_repl_loop/src 09_global_executable/)",
+      "Bash(cp -r 08_the_repl_loop/prompts 09_global_executable/)",
+      "Bash(echo ~/claude-code-camp-2026-Q2/week1_baseline/python/08_the_repl_loop)",
+      "Read(//c/Users/yaada/**)",
+      "Bash(BOUKENSHA_DEBUG=1 boukensha)",
+      "Bash(./venv/bin/pip list *)",
+      "Bash(./venv/bin/pip install *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(wsl pwd *)",
+      "Bash(python3 -m venv venv)",
+      "PowerShell(Get-Item *)"
     ]
   }
 }

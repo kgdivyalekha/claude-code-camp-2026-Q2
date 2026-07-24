@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Boukensha CLI entrypoint — loads and starts the interactive REPL."""
+
+import sys
+import os
+
+# Add the step's src directory to Python path
+step_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+src_path = os.path.join(step_root, "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+# Import and run the loader
+from boukensha.boukensha_loader import load_and_start_repl
+
+if __name__ == "__main__":
+    load_and_start_repl()
