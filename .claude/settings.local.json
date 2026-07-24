@@ -52,7 +52,17 @@
       "Bash(wsl.exe --version)",
       "Bash(wsl.exe *)",
       "WebFetch(domain:github.com)",
-      "Bash(wsl bash *)"
+      "Bash(wsl bash *)",
+      "Bash(python3 *)",
+      "Bash(ruby bin/mud-manager --list-tools)",
+      "Bash(ruby week0_explore/mud_manager/bin/mud-manager --list-tools)",
+      "Bash(git config *)",
+      "Bash(git update-index *)",
+      "Read(//c/Users/yaada/.rbenv/**)",
+      "Read(//c/Users/yaada/**)",
+      "Bash(gem list *)",
+      "Read(//c/Users/**)",
+      "Read(///wsl.localhost/Ubuntu/home/**)"
     ]
   }
 }
