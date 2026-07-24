@@ -29,3 +29,6 @@ src/boukensha/backends/openai.py
 src/boukensha/tasks/__init__.py
 src/boukensha/tasks/base.py
 src/boukensha/tasks/player.py
+src/boukensha/tools/__init__.py
+src/boukensha/tools/file_system.py
+src/boukensha/tools/shell.py

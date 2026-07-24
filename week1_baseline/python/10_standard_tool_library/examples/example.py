@@ -23,38 +23,18 @@ if player_settings:
     print(f"  Model: {player_settings.get('model')}")
 print()
 
-# The base directory tools will operate relative to — the step 07 folder makes
-# a good playground since it already has source files to read.
-base_dir = Path(__file__).resolve().parent.parent.parent.parent/ "07_the_run_dsl"
+# The working directory for FileSystem and Shell tools
+# Using the week0_explore directory as a safe sandbox
+working_dir = project_root / "week0_explore"
 
+print(f"Working directory for tools: {working_dir}")
+print()
 
-def register_tools(dsl):
-    """Register tools for the REPL."""
-    dsl.tool(
-        "read_file",
-        description="Read the contents of a file from disk",
-        parameters={
-            "path": {
-                "type": "string",
-                "description": "File path (relative to the working directory)",
-            }
-        },
-        fn=lambda path: (base_dir / path).read_text(),
-    )
-
-    dsl.tool(
-        "list_directory",
-        description="List the files in a directory",
-        parameters={
-            "path": {
-                "type": "string",
-                "description": "Directory path (relative to the working directory, or '.' for root)",
-            }
-        },
-        fn=lambda path: ", ".join(
-            sorted([f for f in os.listdir(str(base_dir / path)) if not f.startswith(".")])
-        ),
-    )
-
-
-boukensha.repl(tools_fn=register_tools)
+# Start the REPL with FileSystem and Shell tools registered
+# FileSystem tools: pwd, list_directory, read_file, write_file, delete_file, search_files
+# Shell tool: run_command (with optional allow-list and timeout)
+boukensha.repl(
+    working_dir=str(working_dir),
+    allowed_commands=None,  # Allow all commands (None = no restrictions)
+    shell_timeout=30        # 30 second timeout for shell commands
+)

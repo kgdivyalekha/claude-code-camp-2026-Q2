@@ -14,6 +14,9 @@ from .prompt_builder import PromptBuilder  # noqa: F401
 from . import tasks  # noqa: F401
 from . import backends  # noqa: F401
 
+# New in step 10 (10_standard_tool_library)
+from . import tools  # noqa: F401
+
 # From prior step (04_api_client)
 from .client import Client  # noqa: F401
 
@@ -95,6 +98,9 @@ def run(
     log=None,
     max_output_tokens=None,
     tools_fn=None,
+    working_dir=None,
+    allowed_commands=None,
+    shell_timeout=30,
 ):
     """One-shot run: send a single task, get a response, return.
 
@@ -108,6 +114,9 @@ def run(
         log: Logger output destination
         max_output_tokens: Maximum tokens in response
         tools_fn: Function that registers tools (receives registry)
+        working_dir: Working directory for FileSystem and Shell tools
+        allowed_commands: List of allowed commands for Shell tool (None = all allowed)
+        shell_timeout: Timeout in seconds for Shell commands (default 30)
     """
     from . import PromptBuilder, Client, Agent, Logger, tasks as tasks_module
     from . import backends as backends_module
@@ -140,6 +149,12 @@ def run(
 
     ctx = Context(task=task_class, system=system)
     registry = Registry(ctx)
+
+    # Register standard tool modules if working_dir is set
+    if working_dir:
+        from .tools import FileSystem, Shell
+        FileSystem.register(registry, working_dir=working_dir)
+        Shell.register(registry, working_dir=working_dir, timeout=shell_timeout, allowed_commands=allowed_commands)
 
     if tools_fn:
         from .run_dsl import RunDSL
@@ -206,6 +221,9 @@ def repl(
     log=None,
     max_output_tokens=None,
     tools_fn=None,
+    working_dir=None,
+    allowed_commands=None,
+    shell_timeout=30,
 ):
     """Interactive REPL: register tools once, then loop reading tasks from stdin.
 
@@ -222,6 +240,9 @@ def repl(
         log: Logger output destination
         max_output_tokens: Maximum tokens in response
         tools_fn: Function that registers tools (receives registry)
+        working_dir: Working directory for FileSystem and Shell tools
+        allowed_commands: List of allowed commands for Shell tool (None = all allowed)
+        shell_timeout: Timeout in seconds for Shell commands (default 30)
     """
     from . import PromptBuilder, Client, Logger, tasks as tasks_module
     from . import backends as backends_module

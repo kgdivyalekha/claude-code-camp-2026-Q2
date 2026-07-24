@@ -79,7 +79,8 @@
       "PowerShell(Remove-Item *)",
       "Bash(wsl pwd *)",
       "Bash(python3 -m venv venv)",
-      "PowerShell(Get-Item *)"
+      "PowerShell(Get-Item *)",
+      "Bash(python3 *)"
     ]
   }
 }

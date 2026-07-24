@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boukensha"
-version = "0.8.0"
-description = "Boukensha agent loop with interactive REPL — tracks iterations, API calls, and responses to JSONL"
+version = "0.10.0"
+description = "Boukensha agent loop with interactive REPL and standard tool library (FileSystem, Shell)"
 requires-python = ">=3.10"
 dependencies = [
     "pyyaml",
