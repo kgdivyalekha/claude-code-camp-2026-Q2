@@ -1,0 +1,9 @@
+source "https://rubygems.org"
+
+gem "dotenv"
+
+# mud_manager isn't published on rubygems.org — it's a local teaching gem.
+# Satisfy the gemspec's `add_dependency "mud_manager"` from its source instead.
+gem "mud_manager", path: "../../../week0_explore/mud_manager"
+
+gemspec
