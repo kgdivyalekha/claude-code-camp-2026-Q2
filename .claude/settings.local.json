@@ -47,7 +47,10 @@
       "PowerShell(wsl -d Ubuntu -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && python3 '/mnt/c/Users/yaada/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-home-system-claude-code-camp-2026-Q2/a5d15d75-29bc-4c23-a398-9a429ab0d00f/scratchpad/smoke_test_06b.py'\")",
       "PowerShell(wsl -d Ubuntu -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/06_the_logger && source ../../../venv/bin/activate && python3 examples/example.py 2>&1 | head -30\")",
       "PowerShell(wsl -d Ubuntu -e bash -lc \"ls -t /home/system/claude-code-camp-2026-Q2/.boukensha/sessions/ | head -3\")",
-      "PowerShell(wsl -d Ubuntu -e bash -lc \"python3 '/mnt/c/Users/yaada/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-home-system-claude-code-camp-2026-Q2/a5d15d75-29bc-4c23-a398-9a429ab0d00f/scratchpad/inspect_log.py'\")"
+      "PowerShell(wsl -d Ubuntu -e bash -lc \"python3 '/mnt/c/Users/yaada/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-home-system-claude-code-camp-2026-Q2/a5d15d75-29bc-4c23-a398-9a429ab0d00f/scratchpad/inspect_log.py'\")",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(wsl.exe --version)",
+      "Bash(wsl.exe *)"
     ]
   }
 }
