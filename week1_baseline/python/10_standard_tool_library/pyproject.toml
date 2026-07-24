@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boukensha"
+version = "0.10.0"
+description = "Boukensha standard tool library — an MCP host with no built-in tools; every tool arrives from a configured MCP server"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[tool.setuptools.packages.find]
+where = ["src"]

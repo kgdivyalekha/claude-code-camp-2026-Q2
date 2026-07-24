@@ -62,7 +62,13 @@
       "Read(//c/Users/yaada/**)",
       "Bash(gem list *)",
       "Read(//c/Users/**)",
-      "Read(///wsl.localhost/Ubuntu/home/**)"
+      "Read(///wsl.localhost/Ubuntu/home/**)",
+      "Read(///wsl.localhost/Ubuntu/home/system/**)",
+      "Bash(mv docs/plans/python_port/10_the_standard_library.md docs/plans/python_port/10_standard_tool_library.md)",
+      "Bash(command -v wsl.exe wsl)",
+      "Read(//c/Windows/System32/**)",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week1_baseline/python/10_standard_tool_library/**)",
+      "Bash(sed -i 's/run_module\\\\._register_mcp_servers/_register_mcp_servers/g' test_mcp_servers_config.py)"
     ]
   }
 }

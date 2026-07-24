@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: boukensha
+Version: 0.10.0
+Summary: Boukensha standard tool library — an MCP host with no built-in tools; every tool arrives from a configured MCP server
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Requires-Dist: python-dotenv
+Provides-Extra: dev
