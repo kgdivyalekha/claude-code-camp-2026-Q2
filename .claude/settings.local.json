@@ -38,7 +38,6 @@
       "Bash(bash bin/python/05_agent_loop)",
       "Bash(./bin/python/05_agent_loop)",
       "Bash(gh api *)",
-      "Bash(curl -sL https://raw.githubusercontent.com/omenking/claude-code-camp-2026-Q2/main/docs/plans/python_port/06_the_logger.md -o /tmp/ref_06.md)",
       "Bash(python3 -m py_compile src/boukensha/state.py src/boukensha/logger.py src/boukensha/agent.py src/boukensha/__init__.py src/boukensha/errors.py examples/example.py)",
       "PowerShell(Get-Command *)",
       "PowerShell(wsl -d Ubuntu -e bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/06_the_logger && python3 -m py_compile src/boukensha/state.py src/boukensha/logger.py src/boukensha/agent.py src/boukensha/__init__.py src/boukensha/errors.py examples/example.py && echo COMPILE_OK\")",
@@ -68,7 +67,8 @@
       "Bash(command -v wsl.exe wsl)",
       "Read(//c/Windows/System32/**)",
       "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week1_baseline/python/10_standard_tool_library/**)",
-      "Bash(sed -i 's/run_module\\\\._register_mcp_servers/_register_mcp_servers/g' test_mcp_servers_config.py)"
+      "Bash(sed -i 's/run_module\\\\._register_mcp_servers/_register_mcp_servers/g' test_mcp_servers_config.py)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }

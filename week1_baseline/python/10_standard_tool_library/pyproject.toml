@@ -15,5 +15,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = []
 
+[project.scripts]
+boukensha = "boukensha.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]

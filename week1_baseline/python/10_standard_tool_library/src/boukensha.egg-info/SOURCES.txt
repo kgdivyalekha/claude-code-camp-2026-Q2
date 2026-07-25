@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 src/boukensha/__init__.py
 src/boukensha/agent.py
+src/boukensha/cli.py
 src/boukensha/client.py
 src/boukensha/config.py
 src/boukensha/context.py
@@ -18,6 +19,7 @@ src/boukensha/tool.py
 src/boukensha.egg-info/PKG-INFO
 src/boukensha.egg-info/SOURCES.txt
 src/boukensha.egg-info/dependency_links.txt
+src/boukensha.egg-info/entry_points.txt
 src/boukensha.egg-info/requires.txt
 src/boukensha.egg-info/top_level.txt
 src/boukensha/backends/__init__.py

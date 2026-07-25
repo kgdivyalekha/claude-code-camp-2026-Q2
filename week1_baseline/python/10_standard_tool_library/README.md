@@ -131,11 +131,37 @@ BOUKENSHA_DIR=.boukensha python3 week1_baseline/python/10_standard_tool_library/
 ./week1_baseline/bin/python/10_standard_tool_library
 ```
 
+## The `boukensha` command
+
+`pip install -e .` also installs a `boukensha` console script into the active
+venv (`[project.scripts]` in `pyproject.toml`, entry point
+`boukensha.cli:main`) — the Python analogue of ruby's gem-installed
+`bin/boukensha`. It takes no arguments and just calls `boukensha.repl()`, so
+config resolution is the same as everywhere else in this step
+(`BOUKENSHA_DIR` env var, else `~/.boukensha`):
+
+```sh
+source venv/bin/activate      # from repo root
+pip install -e week1_baseline/python/10_standard_tool_library
+BOUKENSHA_DIR=.boukensha boukensha
+```
+
+This is a Python venv script, unrelated to (and non-conflicting with) any
+Ruby `boukensha` gem executable on your `PATH` — it only exists while the
+venv is active. There is no Python equivalent of ruby's `~/.boukensharc` /
+`boukensha_loader.rb` step-switching mechanism (see "Technical
+Considerations" below) — which Python step runs is determined by which
+package you `pip install -e`, not by an rc file.
+
 ## Tests
 
 ```sh
-python3 -m unittest discover -s test
+python3 -m unittest discover -s test -t .
 ```
+
+The `-t .` matters: without an explicit top-level directory, `unittest`
+discover imports `test/*.py` as top-level modules instead of as the `test`
+package, and `from .helper import McpTestHelper`'s relative import fails.
 
 MCP client/tool-registration tests spawn the real `mud-manager` daemon from
 the sibling `week0_explore/mud_manager` checkout against its own built-in
