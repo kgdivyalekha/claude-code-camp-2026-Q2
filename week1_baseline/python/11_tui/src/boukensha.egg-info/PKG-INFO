@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: boukensha
+Version: 0.11.1
+Summary: Boukensha terminal UI — a Textual-based four-zone TUI wrapping the interactive REPL, on top of the MCP-host tool library
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Requires-Dist: python-dotenv
+Requires-Dist: textual
+Provides-Extra: dev

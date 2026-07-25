@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boukensha"
+version = "0.11.1"
+description = "Boukensha terminal UI — a Textual-based four-zone TUI wrapping the interactive REPL, on top of the MCP-host tool library"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "python-dotenv",
+    "textual",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+boukensha = "boukensha.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

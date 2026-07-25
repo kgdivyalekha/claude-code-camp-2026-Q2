@@ -1,0 +1,5 @@
+#!/bin/bash
+cd "$(dirname "$0")/../../python/11_tui" || exit 1
+source ../../../venv/bin/activate
+pip install -e . > /dev/null 2>&1
+boukensha "$@"
