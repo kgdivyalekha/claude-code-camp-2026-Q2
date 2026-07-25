@@ -27,3 +27,14 @@ mcp_servers:
       MUD_PORT:     4000
       MUD_NAME:     queen
       MUD_PASSWORD: password
+
+  # Files. A third-party server nobody wrote boukensha code for — which is the
+  # whole point: file access is a server you plug in, not a feature the agent
+  # was born with. Edit the last arg to change what it can reach.
+  #
+  # required: false so a missing npx is a warning, not a dead agent.
+  filesystem:
+    command:  npx
+    args:     [-y, "@modelcontextprotocol/server-filesystem", /tmp]
+    prefix:   fs
+    required: false
