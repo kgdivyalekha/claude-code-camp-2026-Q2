@@ -152,7 +152,20 @@
       "PowerShell(wsl -e bash -lc \"bash /home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/12_context/run_tests_tmp.sh 2>&1 | tail -200\")",
       "PowerShell(wsl -e bash -lc \"bash /home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/12_context/run_tests_tmp.sh 2>&1 | tail -100\")",
       "PowerShell(wsl -e bash -lc \"bash /home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/12_context/run_tests_tmp.sh 2>&1 | tail -60\")",
-      "PowerShell(wsl -e bash -lc \"bash /home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/12_context/run_tests_tmp.sh 2>&1\")"
+      "PowerShell(wsl -e bash -lc \"bash /home/system/claude-code-camp-2026-Q2/week1_baseline/ruby/12_context/run_tests_tmp.sh 2>&1\")",
+      "Bash(xargs -I{} wc -l {})",
+      "Bash(echo \"exit:$?\")",
+      "Bash(./venv/bin/python3 --version)",
+      "Bash(./venv/bin/python --version)",
+      "PowerShell(wsl --version 2>&1; wsl -l -v 2>&1)",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && python --version && python -c 'import boukensha'\" 2>&1)",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && pip show boukensha 2>&1 | head -20\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && pip install -e week1_baseline/python/12_context 2>&1 | tail -20\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2 && source venv/bin/activate && python week1_baseline/python/12_context/test/_smoke_check.py\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python -m unittest discover -s test -t . 2>&1 | tail -40\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_agent_smoke.py\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_repl_openai_smoke.py\")",
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_backends_reasoning_smoke.py\")"
     ]
   }
 }
