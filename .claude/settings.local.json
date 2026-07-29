@@ -165,7 +165,11 @@
       "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python -m unittest discover -s test -t . 2>&1 | tail -40\")",
       "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_agent_smoke.py\")",
       "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_repl_openai_smoke.py\")",
-      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_backends_reasoning_smoke.py\")"
+      "PowerShell(wsl bash -lc \"cd /home/system/claude-code-camp-2026-Q2/week1_baseline/python/12_context && source ../../../venv/bin/activate && python test/_backends_reasoning_smoke.py\")",
+      "Artifact",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/**)",
+      "Bash(python -m pytest test/test_db.py -v)",
+      "Bash(./venv/bin/python -m pytest test/test_db.py -v)"
     ]
   }
 }

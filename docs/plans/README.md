@@ -2,6 +2,23 @@
 
 This directory contains detailed plans for major project initiatives and ports.
 
+## Week 2 — Capable Agent
+
+### Observability, Hooks & Permissions (week2_capable)
+**Status**: Planning — `docs/plans/week2_capable.md`
+**Objective**: Build observability infrastructure, hook system, and permission policies on top of `week1_baseline/python/12_context`.
+
+**Key Deliverables**:
+- `NavigationTracker` — tracks agent movement and builds a live MUD world map
+- `HookRegistry` — pre/post event handlers for extensibility
+- `PermissionPolicy` — declarative rules (allow-list, deny-list, resource quotas)
+- Enhanced log_viz with **colorful SVG map visualization** showing agent navigation
+- Structured logging events for observability
+
+**Timeline**: 7 days (5-phase implementation)
+
+---
+
 ## Python Port Initiative
 
 ### Python Port: Boukensha Configuration (00_config)

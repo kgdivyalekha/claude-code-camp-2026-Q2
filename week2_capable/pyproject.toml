@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boukensha"
+version = "0.12.0"
+description = "Boukensha context management — token-aware auto-compaction and a colour-coded context gauge, on top of the Textual TUI and MCP-host tool library"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "python-dotenv",
+    "textual",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+boukensha = "boukensha.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

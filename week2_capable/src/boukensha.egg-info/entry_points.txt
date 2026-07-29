@@ -1,0 +1,2 @@
+[console_scripts]
+boukensha = boukensha.cli:main

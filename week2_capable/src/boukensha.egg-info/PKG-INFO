@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: boukensha
+Version: 0.12.0
+Summary: Boukensha context management — token-aware auto-compaction and a colour-coded context gauge, on top of the Textual TUI and MCP-host tool library
+Requires-Python: >=3.10
+Requires-Dist: pyyaml
+Requires-Dist: python-dotenv
+Requires-Dist: textual
+Provides-Extra: dev
