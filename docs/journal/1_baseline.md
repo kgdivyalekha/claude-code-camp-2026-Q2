@@ -1,60 +1,45 @@
-# Preweek Technical Documentation
+# Week 1 Baseline Technical Documentation
 
 ## Technical Goal
-The technical goal of Week1_Baseline is to build an agent to play the tbaMUD game upon instructions using TUI.
+Build a custom agentic loop framework ("Boukensha") that can drive an agent to play tbaMUD on instructions, with support for multiple LLM backends and a specialized tool system via MCP (Model Context Protocol).
 
-[Ref 1] Examples of Agent Architectures That Scale With Effort:
-- An agent file with referenced files eg. AGENT.md,  @~/docs/*.MD
-- Agent Skills driven by main agent eg. ~/.skills
-- Filesystem Subagent driven by a coding harness or Coding Agent SDK eg. ~/subagents
-- AI workflow automation platform eg. n8n
-- Use a generic AI Agent SDK that leverages plug and plays generic AI packages.
-- Use low level first-party LLM SDKs and write our own agentic loop
-- Use REST APIs directly, write our own agentic loop
-  - The agentic loop is model-driven orchestration  with middleware programmatic guidance
-  - The agentic loop is code-driven orchestration
+Key objectives:
+- Create a LLM-agnostic agent framework supporting Anthropic, OpenAI, Gemini, Ollama, and other providers
+- Implement MCP client to connect to external tool servers (eg. mud-manager)
+- Build a registry-based tool dispatch system to store and dispatch whenever called for.
+- Create a REPL interface for agent control like interactively
+- Implement proper logging and session visualization eg, log_viz
+- Port architecture from Ruby to Python for language-agnostic support and have potential to include other NLP libraries for building a capable agent in the upcoming week.
 
 ## Technical Uncertainty
-- I am uncertain the way I give prompts to coding harness will drive the agent to achieve the goal specified. eg. To level up and fight the minotaur.
-- I'm uncertain if LLM model has the capability to hold memory and sustain nc connection to achieve the goal.
-- I'm uncertain that a coding harnesses can interact with another open source LLM to execute the code to minimize token usage.
+- Whether the custom agentic loop will efficiently handle long-running MUD sessions with proper memory and state management
+- How well multi-agent scenario can be played with optimized token usage
+- If MCP server is integrated, will that be able to handle long telnet or netcat sessions without breaking intermittently
+- How to properly manage multi-player concurrent sessions in a MUD environment
 
+## Technical Hypotheses
+- A specialized agentic loop will outperform SDK built earlier because we can optimize for MUD-specific state management and session longevity
+- MCP as a standard protocol will allow us to separate tool implementation from the core agentic framework.
+- Multi LLMs implementation so as to reduce the token usage instead of relying only on Claude.
+- A proper logging/visualization layer is critical for debugging agent behavior and understanding failure modes in long-running sessions
+- Scope for porting to another language that can help with adding more features to the agent. eg. observability
 
-## ## Technical Hypotheses
-- Based on our [Ref 1] I think that we will have issues with the coding harness driving the MUD without an interface because we don't a defined API, we are driving commands over a protocol that we need to live-monitor. Telnet communication seems like it would be a sticking point.
+## Technical Observations
+- Boukensha successfully implements a custom agentic loop with proper state management, message history, and context windows
+- MCP client starts as soon as the tool is loaded.
+- The tool registry prevents collisions across MCP servers reducing complexity.
+- Log Viz effectively visualizes session transcripts with token/usage view 
+- Python port done effectively so that all of the essence is captured.
+- Multi-backend support works across Anthropic, OpenAI, Gemini, Ollama with environmaent variables and settings (.env & settings.yaml)
 
-- I think we will need an interface because mangaging a long-lived telnet session may prove difficult. In the past I've always found managing live-sessions challenging.
-
-- I think that only agent architecture that will be able to drive our use-case will be where we implement a specialized agentic loop, as I think generic models memory will not be capable enough to remember and navigate the MUD world.
-
-- I think that we need to roll-our-own agent without an SDK because generic primitives for observability, for memory, and our use-case will required  specialzed implementation. And that we want to connect broadly will all frontier models and many SDKS will lack one of them.
-
-- I think the coding harness should be integrated/replaced with the other open source harnesses for menial tasks so that Claude can be the anchor for final execution.
-
-## Technical Observerations
-- An Agent.md could not connect to the MUD, it could produces scripts but it was unreliable in creating a connection to the MUD and needed knowledge of the deterministic TUI of the MUD.
-- Skills and Subagents preformed accompanied with a script to manage the telnet session. They were able to play the MUD, but maybe not efficiently
-- Using Markdown files where the coding harness updates simple memory files produced brittle navigation instructions. eg:
-
-```sh
-To reach the **Newbie Zone** from Market Square:
-1. `north` → Temple Square
-2. `north` → Temple
-3. `north` → Altar
-4. `north` → Behind Altar
-5. `north` → Great Field
-6. `north` → Great Field (with newbie zone sign)
-7. `east` → Newbie Zone entrance
-8. `north` → Enter corridor
-```
 
 ## Technical Conclusions
-- Skills and Subagents are capable of driving the MUD but it requires atleast a Sonnet model because basic won't cut it and it gets stuck i infinite loops.
-- We do need specialized memory for map navigation and world data
-- We opened a new technical use-case of if we should have our agent handle multiple sessions of multiple player, playing at the same time since co-op is a common factor in MUDs which we forget to consider in our design.
-- We could not explore n8n completely due to technical restraints executing external scripts.
-- Implementing our own specialized loops remain technical uncertain and will need to be explored in depth in Week 2.
-- Without a customized agentic loop the agents could not preform goals efficently. And did not have any key meta strategies or journey player strategies.
+- Boukensha does proper session management, context windows, and backend abstraction
+- MCP is the right standard for tool integration as it allows us to plugin mud-manager, filesystem, and other servers without much code changes
+- Logging infrastructure is built in from the start so that visualization helps with greater understanding of the application.
+- Language-agnostic architecture requires careful design upfront and it was implemented with assumptions and documentation made for Ruby code to port to python without much issues.
+- Config-driven tool registration (settings.yaml) is best in here instead of hard-coding implementation.
+- Session isolation and proper cost tracking per provider/model will be critical for high-volume production use
 
 ## Key Takeaway
-When we have a specialized use-case like a playing MUD, we likely cannot leverage generic SDKs for Agents because we need specialized tooling and agentic loops.
+A custom agentic loop with proper abstraction (MCP for tools, config for capabilities, backends for providers) is feasible and outperforms generic SDKs for specialized use-cases. 
