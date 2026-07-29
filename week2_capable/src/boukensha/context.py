@@ -67,8 +67,71 @@ class Context:
     # Resets current_tokens to 0 (will be updated by the next API response).
     # Returns the number of messages dropped.
     def compact_messages(self, target_fraction: float = 0.60) -> int:
-        drop_count = min(math.ceil(len(self.messages) * 0.40), len(self.messages) - 2)
-        drop_count = max(drop_count, 0)
+        """Drop oldest messages to reach target_fraction of context window.
+
+        MUST respect tool_use/tool_result pairing: never drop at a boundary that
+        would separate a tool_use block from its matching tool_result message.
+        The Anthropic API requires every tool_use to be followed by its tool_result
+        in sequence; splitting them causes a 400 error and forces a retry.
+
+        Strategy:
+        1. Identify all tool_use/tool_result pairs and their boundaries
+        2. Find the earliest boundary after which we can drop without splitting a pair
+        3. Keep at least 2 messages (system + first turn)
+        """
+        if len(self.messages) <= 2:
+            return 0
+
+        # Calculate how many messages to drop to reach target
+        target_msgs = max(2, int(len(self.messages) * target_fraction))
+        msgs_to_drop = len(self.messages) - target_msgs
+
+        if msgs_to_drop <= 0:
+            return 0
+
+        # Find all tool_use ids in assistant messages (only the first occurrence counts as the "use")
+        tool_use_ids = set()
+        for i, msg in enumerate(self.messages):
+            if msg.role == "assistant" and isinstance(msg.content, list):
+                for block in msg.content:
+                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                        tool_use_ids.add(block.get("id"))
+
+        # Find boundaries that are safe to cut at (after a tool_result for all known tool_use ids)
+        safe_boundaries = []
+        pending_tool_uses = set()
+
+        for i, msg in enumerate(self.messages):
+            # Track tool_use ids we haven't seen results for yet
+            if msg.role == "assistant" and isinstance(msg.content, list):
+                for block in msg.content:
+                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                        pending_tool_uses.add(block.get("id"))
+
+            # Mark when we see a tool_result
+            if msg.role == "tool_result" and msg.tool_use_id:
+                pending_tool_uses.discard(msg.tool_use_id)
+
+            # A boundary is safe if no tool_use is waiting for its result
+            if not pending_tool_uses:
+                safe_boundaries.append(i + 1)
+
+        # Find the best safe boundary to drop from (earliest that drops enough messages)
+        drop_at = None
+        for boundary in safe_boundaries:
+            if boundary >= msgs_to_drop:
+                drop_at = boundary
+                break
+
+        # Fallback: if no perfect safe boundary, drop as close as possible without breaking pairs
+        if drop_at is None and safe_boundaries:
+            drop_at = safe_boundaries[-1]
+
+        # If still no boundary found, don't drop (safer than corrupting)
+        if drop_at is None or drop_at >= len(self.messages) - 1:
+            return 0
+
+        drop_count = drop_at
         self.messages = self.messages[drop_count:]
         self.current_tokens = 0
         return drop_count

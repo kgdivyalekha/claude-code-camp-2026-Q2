@@ -87,20 +87,28 @@ def prefixed(name: str, prefix: Optional[str]) -> str:
     return name if not p else f"{p}{SEPARATOR}{name}"
 
 
-def to_boukensha_params(input_schema: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def to_boukensha_params(input_schema: Optional[Dict[str, Any]], max_desc_chars: int = 200) -> Dict[str, Any]:
     """Convert an MCP inputSchema into boukensha's ``parameters`` shape
     (``{name: {"type":, "description":, "required":}}``). Every property is listed so the
     model can supply optional ones too (servers treat blanks as absent). Descriptions are
-    trimmed to reduce schema overhead (§3.3 optimization)."""
+    trimmed to reduce schema overhead (§3.3 optimization): first sentence preserved, then
+    clamped to max_desc_chars to cut ~20-30% of schema tokens."""
     props = (input_schema or {}).get("properties") or {}
     required_params = set((input_schema or {}).get("required") or [])
     out: Dict[str, Any] = {}
     for pname, schema in props.items():
         desc = str(schema.get("description") or "")
-        # Trim description to first sentence only
-        desc = desc.split(".")[0].strip()
+        # Trim to first sentence, then clamp to max_desc_chars
+        first_sentence = desc.split(".")[0].strip()
+        if len(first_sentence) > max_desc_chars:
+            # If first sentence alone exceeds limit, cut at max_desc_chars and add ellipsis
+            desc = first_sentence[:max_desc_chars].rsplit(" ", 1)[0] + "…"
+        else:
+            desc = first_sentence
         if schema.get("enum"):
-            desc = f"{desc} (one of: {', '.join(str(e) for e in schema['enum'])})".strip()
+            enum_str = f" (one of: {', '.join(str(e) for e in schema['enum'])})"
+            if len(desc) + len(enum_str) <= max_desc_chars:
+                desc = f"{desc}{enum_str}".strip()
         out[pname] = {
             "type": schema.get("type") or "string",
             "description": desc,

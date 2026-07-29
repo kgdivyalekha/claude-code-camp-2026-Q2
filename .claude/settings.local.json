@@ -196,7 +196,20 @@
       "Bash(mv sync_events.py milestone_docs/scripts/)",
       "Bash(mv test_event_store.py milestone_docs/scripts/)",
       "Bash(mv test_cost_calculation.rb milestone_docs/scripts/)",
-      "Bash(grep -v \"^\\\\\\\\.\")"
+      "Bash(grep -v \"^\\\\\\\\.\")",
+      "Bash(grep -n \"compact\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\src\\\\boukensha\\\\context.py\")",
+      "Bash(grep -rn \"to_boukensha_params\\\\|class Tool\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\src\\\\boukensha\")",
+      "Bash(grep -rn \"to_tools\\\\|\\\\\"required\\\\\"\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\src\\\\boukensha\" --include=\"*.py\")",
+      "Bash(find *)",
+      "Bash(python -m pytest test/test_m3_quick_wins.py -v)",
+      "Bash(wc -l \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\milestone_docs\\\\milestones.md\")",
+      "Bash(head -30 \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\milestone_docs\\\\milestones.md\")",
+      "Bash(grep \"^#\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\milestone_docs\\\\milestones.md\")",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\milestone_docs\")",
+      "Bash(rm -f M1_BASELINE.md)",
+      "Bash(rm -f M1_SUMMARY.txt)",
+      "Bash(rm -f M2_DASHBOARD.md)",
+      "Bash(rm -f M2_SUMMARY.txt)"
     ]
   }
 }

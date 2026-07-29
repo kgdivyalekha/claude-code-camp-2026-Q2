@@ -1,9 +1,0 @@
-Token Baseline Measurement
-Session: 20260729T181518Z-6daec85f
-Total cost: $0.0119
-Total input tokens: 16,109
-Total output tokens: 292
-Turns: 2
-Schema overhead: 0.0% of input
-Cache hit rate: 0.0%
-Avg iterations/turn: 0.0
