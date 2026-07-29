@@ -74,6 +74,15 @@ class Logger:
             "context_window": context_window,
         })
 
+    def location_bookmark(self, location: str, exits: Optional[List[str]] = None, visited_before: bool = False) -> None:
+        """Record a location checkpoint for pair-safe compaction."""
+        self._write_log({
+            "phase": "location_bookmark",
+            "location": location,
+            "exits": exits or [],
+            "visited_before": visited_before,
+        })
+
     def reasoning(self, text: str, redacted: bool = False) -> None:
         self._write_log({"phase": "reasoning", "text": str(text), "redacted": redacted})
 
@@ -146,8 +155,9 @@ class Logger:
         }
         self._log_file.write(json.dumps(record, default=str) + "\n")
         self._log_file.flush()
+        # Pass the complete record (with session_id, turn, actor, at) to subscribers
         for callback in self._subscribers:
-            callback(event)
+            callback(record)
 
     @staticmethod
     def _generate_session_id() -> str:

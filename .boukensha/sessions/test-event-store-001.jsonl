@@ -1,0 +1,10 @@
+{"phase": "session_start", "session_id": "test-event-store-001", "turn": null, "actor": null, "at": "2026-07-29T15:55:54.995732-04:00"}
+{"phase": "turn", "n": 1, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:55:54.996586-04:00"}
+{"phase": "tool_call", "name": "look", "args": {}, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:55:54.996833-04:00"}
+{"phase": "tool_result", "name": "look", "result": "You are in a test room", "ok": true, "error": null, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:55:54.996961-04:00"}
+{"phase": "response", "text": "I see a test room", "usage": {"input_tokens": 500, "output_tokens": 100}, "stop_reason": null, "provider": "backend", "model": "test-model", "input_tokens": 500, "output_tokens": 100, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:55:54.997254-04:00"}
+{"phase": "session_start", "session_id": "test-event-store-001", "turn": null, "actor": null, "at": "2026-07-29T15:56:31.103194-04:00"}
+{"phase": "turn", "n": 1, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:56:31.104588-04:00"}
+{"phase": "tool_call", "name": "look", "args": {}, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:56:31.115424-04:00"}
+{"phase": "tool_result", "name": "look", "result": "You are in a test room", "ok": true, "error": null, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:56:31.115611-04:00"}
+{"phase": "response", "text": "I see a test room", "usage": {"input_tokens": 500, "output_tokens": 100}, "stop_reason": null, "provider": "backend", "model": "test-model", "input_tokens": 500, "output_tokens": 100, "session_id": "test-event-store-001", "turn": 1, "actor": null, "at": "2026-07-29T15:56:31.115911-04:00"}

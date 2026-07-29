@@ -68,9 +68,13 @@ def register_client(registry: Any, client: Client, prefix: Optional[str] = None)
             result = client.call_tool(_remote, {str(k): v for k, v in kwargs.items()})
             return f"error: {result['text']}" if result["error"] else result["text"]
 
+        # Trim tool description to first sentence (§3.3 optimization)
+        tool_desc = str(tool.get("description") or "")
+        tool_desc = tool_desc.split(".")[0].strip()
+
         registry.tool(
             local,
-            description=str(tool.get("description") or ""),
+            description=tool_desc,
             parameters=to_boukensha_params(tool.get("inputSchema")),
             block=_block,
         )
@@ -85,15 +89,23 @@ def prefixed(name: str, prefix: Optional[str]) -> str:
 
 def to_boukensha_params(input_schema: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Convert an MCP inputSchema into boukensha's ``parameters`` shape
-    (``{name: {"type":, "description":}}``). Every property is listed so the
-    model can supply optional ones too (servers treat blanks as absent)."""
+    (``{name: {"type":, "description":, "required":}}``). Every property is listed so the
+    model can supply optional ones too (servers treat blanks as absent). Descriptions are
+    trimmed to reduce schema overhead (§3.3 optimization)."""
     props = (input_schema or {}).get("properties") or {}
+    required_params = set((input_schema or {}).get("required") or [])
     out: Dict[str, Any] = {}
     for pname, schema in props.items():
         desc = str(schema.get("description") or "")
+        # Trim description to first sentence only
+        desc = desc.split(".")[0].strip()
         if schema.get("enum"):
             desc = f"{desc} (one of: {', '.join(str(e) for e in schema['enum'])})".strip()
-        out[pname] = {"type": schema.get("type") or "string", "description": desc}
+        out[pname] = {
+            "type": schema.get("type") or "string",
+            "description": desc,
+            "required": pname in required_params
+        }
     return out
 
 

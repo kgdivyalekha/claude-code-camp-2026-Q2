@@ -110,7 +110,8 @@ module LogViz
             COALESCE(SUM(cost_usd), 0) as total_cost,
             COUNT(DISTINCT turn) as turn_count,
             COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0)), 0) as input_tokens,
-            COALESCE(SUM(output_tokens), 0) as output_tokens
+            COALESCE(SUM(output_tokens), 0) as output_tokens,
+            model
           FROM events
           WHERE session_id = ? AND phase = 'response'
         SQL
@@ -121,11 +122,13 @@ module LogViz
       turn_count = row["turn_count"].to_i
       input_tokens = row["input_tokens"].to_i
       output_tokens = row["output_tokens"].to_i
+      model = row["model"].to_s
 
-      # Estimate if cost_usd not provided
-      if total_cost.zero?
-        input_cost = (input_tokens / 1_000_000.0) * 3.0
-        output_cost = (output_tokens / 1_000_000.0) * 15.0
+      # Estimate if cost_usd not provided using current pricing
+      if total_cost.zero? || total_cost.nil?
+        rates = model_pricing_rates(model)
+        input_cost = (input_tokens / 1_000_000.0) * rates[:input]
+        output_cost = (output_tokens / 1_000_000.0) * rates[:output]
         total_cost = input_cost + output_cost
       end
 
@@ -277,6 +280,45 @@ module LogViz
         }
       end
       sessions
+    end
+
+    private
+
+    def model_pricing_rates(model)
+      # Current Claude pricing per 1M tokens (matches session.rb)
+      case model&.downcase
+      when /claude-fable-5/
+        { input: 10.0, output: 50.0 }
+      when /claude-opus-5/
+        { input: 15.0, output: 75.0 }
+      when /claude-opus-4-8/
+        { input: 5.0, output: 25.0 }
+      when /claude-opus-4-7/
+        { input: 5.0, output: 25.0 }
+      when /claude-opus-4-6/
+        { input: 5.0, output: 25.0 }
+      when /claude-sonnet-4-6/
+        { input: 3.0, output: 15.0 }
+      when /claude-sonnet-5/
+        { input: 3.0, output: 15.0 }
+      when /claude-haiku-4-5/
+        { input: 1.0, output: 5.0 }
+      when /claude-3-5-sonnet/
+        { input: 3.0, output: 15.0 }
+      when /claude-3-5-haiku/
+        { input: 0.8, output: 4.0 }
+      when /claude-3-opus/
+        { input: 15.0, output: 75.0 }
+      when /claude-3-sonnet/
+        { input: 3.0, output: 15.0 }
+      when /claude-3-haiku/
+        { input: 0.8, output: 4.0 }
+      when /claude-opus-4/
+        { input: 5.0, output: 25.0 }
+      else
+        # Default fallback (Haiku 4.5)
+        { input: 1.0, output: 5.0 }
+      end
     end
   end
 end

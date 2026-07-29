@@ -13,6 +13,7 @@ from .config import Config
 from .context import Context
 from .logger import Logger
 from .models import Models
+from .observability.event_store import EventStore
 from .prompt_builder import PromptBuilder
 from .registry import Registry
 from .repl import Repl
@@ -175,6 +176,15 @@ def run(
             "provider": backend,
         },
     )
+
+    # Automatically attach EventStore to capture events to events.db (M3 optimization)
+    event_store = None
+    try:
+        event_store = EventStore()
+        event_store.attach(logger)
+    except Exception as e:
+        print(f"[boukensha] warning: EventStore initialization failed: {e}", file=sys.stderr)
+
     agent = Agent(
         context=ctx,
         registry=registry,
@@ -191,6 +201,8 @@ def run(
         return agent.run()
     finally:
         logger.close()
+        if event_store:
+            event_store.close()
 
 
 def repl(
@@ -283,6 +295,14 @@ def repl(
         },
     )
 
+    # Automatically attach EventStore to capture events to events.db (M3 optimization)
+    event_store = None
+    try:
+        event_store = EventStore()
+        event_store.attach(logger)
+    except Exception as e:
+        print(f"[boukensha] warning: EventStore initialization failed: {e}", file=sys.stderr)
+
     repl_instance = Repl(
         context=ctx,
         registry=registry,
@@ -308,3 +328,5 @@ def repl(
         print("\nInterrupted.")
     finally:
         logger.close()
+        if event_store:
+            event_store.close()

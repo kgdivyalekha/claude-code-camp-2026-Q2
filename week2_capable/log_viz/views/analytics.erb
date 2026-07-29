@@ -1,0 +1,238 @@
+<div class="analytics-container">
+  <h1>📊 Sessions Analytics Dashboard</h1>
+
+  <div class="analytics-intro">
+    <p>Token breakdown and cost analysis for all sessions in events.db</p>
+  </div>
+
+  <% if @sessions.empty? %>
+    <div class="empty-state">
+      <p>No sessions found in events.db</p>
+    </div>
+  <% else %>
+    <div class="sessions-table-container">
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Input Tokens</th>
+            <th>Output Tokens</th>
+            <th>Schema %</th>
+            <th>Cache Hit %</th>
+            <th>Total Cost</th>
+            <th>Turns</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @sessions.each do |session| %>
+            <tr>
+              <td class="session-id">
+                <a href="/sessions/<%= session[:id] %>">
+                  <%= session[:id] %>
+                </a>
+              </td>
+              <td class="tokens-input">
+                <%= fmt_tokens(session[:breakdown][:total_input_tokens]) %>
+              </td>
+              <td class="tokens-output">
+                <%= fmt_tokens(session[:breakdown][:total_output_tokens]) %>
+              </td>
+              <td class="schema-overhead">
+                <% schema_pct = session[:schema][:percent_of_input] || 0 %>
+                <span class="<%= schema_pct > 90 ? 'danger' : schema_pct > 80 ? 'warning' : 'normal' %>">
+                  <%= schema_pct.round(1) %>%
+                </span>
+              </td>
+              <td class="cache-hit">
+                <% cache_pct = session[:cache][:hit_rate] || 0 %>
+                <span class="<%= cache_pct > 50 ? 'success' : 'normal' %>">
+                  <%= cache_pct.round(1) %>%
+                </span>
+              </td>
+              <td class="total-cost">
+                <%= fmt_cost(session[:cost][:total_usd]) %>
+              </td>
+              <td class="turn-count">
+                <%= session[:cost][:turns] %>
+              </td>
+              <td class="actions">
+                <a href="/sessions/<%= session[:id] %>/tokens" class="btn-small">View Tokens</a>
+                <a href="/sessions/<%= session[:id] %>" class="btn-small">Transcript</a>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="analytics-summary">
+      <h2>Summary Statistics</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">Total Sessions</div>
+          <div class="summary-value"><%= @sessions.length %></div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Avg Schema Overhead</div>
+          <div class="summary-value">
+            <% avg_schema = @sessions.map { |s| s[:schema][:percent_of_input] || 0 }.sum / @sessions.length.to_f %>
+            <%= avg_schema.round(1) %>%
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Avg Cache Hit Rate</div>
+          <div class="summary-value">
+            <% avg_cache = @sessions.map { |s| s[:cache][:hit_rate] || 0 }.sum / @sessions.length.to_f %>
+            <%= avg_cache.round(1) %>%
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total Cost</div>
+          <div class="summary-value">
+            <% total_cost = @sessions.map { |s| s[:cost][:total_usd] || 0 }.sum %>
+            <%= fmt_cost(total_cost) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+.analytics-container {
+  padding: 2rem;
+  max-width: 1400px;
+}
+
+.analytics-intro {
+  margin-bottom: 2rem;
+  color: #666;
+}
+
+.sessions-table-container {
+  overflow-x: auto;
+  margin: 2rem 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sessions-table thead {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.sessions-table th {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+}
+
+.sessions-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.sessions-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.session-id {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.session-id a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.session-id a:hover {
+  text-decoration: underline;
+}
+
+.schema-overhead span {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.schema-overhead span.danger {
+  background-color: #ffe0e0;
+  color: #d00;
+}
+
+.schema-overhead span.warning {
+  background-color: #fff5e0;
+  color: #f80;
+}
+
+.cache-hit span {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.cache-hit span.success {
+  background-color: #e0ffe0;
+  color: #080;
+}
+
+.actions {
+  text-align: center;
+}
+
+.btn-small {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: 0 2px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 3px;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.btn-small:hover {
+  background-color: #0052a3;
+}
+
+.analytics-summary {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #ddd;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.summary-card {
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.summary-label {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+</style>

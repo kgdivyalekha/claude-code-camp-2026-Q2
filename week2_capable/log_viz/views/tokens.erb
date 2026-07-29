@@ -9,7 +9,13 @@
     <a href="/sessions/<%= @session.id %>">← Back to Transcript</a>
   </div>
 
-  <h1>Token Baseline: <%= @session.id %></h1>
+  <div class="dashboard-header" id="dashboard-header">
+    <h1>Token Baseline: <%= @session.id %></h1>
+    <div class="live-indicator" id="live-indicator" style="display: none;">
+      <span class="live-dot"></span>
+      <span class="live-text">Live</span>
+    </div>
+  </div>
 
   <!-- Cost Summary -->
   <section class="cost-summary">
@@ -17,7 +23,7 @@
     <div class="metrics-grid">
       <div class="metric">
         <div class="label">Total Cost</div>
-        <div class="value"><%= fmt_cost(@cost_summary[:total_usd]) %></div>
+        <div class="value" data-cost-value="<%= @cost_summary[:total_usd] %>"><%= fmt_cost(@cost_summary[:total_usd]) %></div>
       </div>
       <div class="metric">
         <div class="label">Turns</div>
@@ -224,5 +230,148 @@
   </section>
 
 </div>
+
+<script>
+  // Live refresh: check for new events every 2 seconds
+  const sessionId = '<%= @session.id %>';
+  let lastUpdate = Date.now();
+  let noUpdateCount = 0;
+  let previousCost = document.querySelector('[data-cost-value]')?.getAttribute('data-cost-value') || '0.0000';
+
+  function formatCost(n) {
+    if (!n || isNaN(n)) return '$0.0000';
+    return '$' + parseFloat(n).toFixed(4);
+  }
+
+  function checkForUpdates() {
+    fetch(`/api/sessions/${sessionId}/cost`)
+      .then(response => {
+        if (!response.ok) throw new Error('Not found');
+        return response.json();
+      })
+      .then(data => {
+        const newCost = formatCost(data.total_usd);
+        const costElements = document.querySelectorAll('.cost-summary .metric .value');
+
+        if (newCost !== previousCost && costElements.length > 0) {
+          previousCost = newCost;
+          lastUpdate = Date.now();
+          noUpdateCount = 0;
+
+          // Update the total cost display
+          costElements[0].textContent = newCost;
+
+          // Show update animation
+          costElements[0].parentElement.style.animation = 'highlight-update 1s ease-out';
+          setTimeout(() => {
+            costElements[0].parentElement.style.animation = 'none';
+          }, 1000);
+        } else {
+          noUpdateCount++;
+        }
+      })
+      .catch(err => {
+        console.log('Dashboard update check:', err);
+        noUpdateCount++;
+      });
+  }
+
+  // Show live indicator immediately
+  document.getElementById('live-indicator').style.display = 'inline-flex';
+
+  // Start polling every 2 seconds
+  const refreshInterval = setInterval(checkForUpdates, 2000);
+
+  // Add CSS for live indicator and updates
+  const style = document.createElement('style');
+  style.textContent = `
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-header h1 {
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse-blink 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+      }
+    }
+
+    @keyframes pulse-blink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    @keyframes highlight-update {
+      0% {
+        background-color: #fef08a;
+        box-shadow: 0 0 12px rgba(250, 204, 21, 0.5);
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .dashboard-header h1 {
+        width: 100%;
+      }
+
+      .live-indicator {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Clean up on page unload
+  window.addEventListener('beforeunload', () => {
+    clearInterval(refreshInterval);
+  });
+</script>
 
 <% end %>

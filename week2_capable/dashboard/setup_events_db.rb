@@ -1,33 +1,69 @@
 #!/usr/bin/env ruby
-# Quick setup: rebuild events.db from baseline fixture JSONL
-
-$LOAD_PATH.unshift(File.expand_path("log_viz/lib", __dir__))
+# Setup: load events.db from fixture and all sessions in .boukensha/sessions
 
 require "json"
 require "sqlite3"
+require "fileutils"
 
-# Add Python's observability modules to load path
-sys_path = ENV["PYTHONPATH"] || ""
-ENV["PYTHONPATH"] = "#{File.expand_path("src", __dir__)}:#{sys_path}"
+# Helper function to load events from a JSONL file
+def load_events(db, file_path)
+  return unless File.exist?(file_path)
 
-# For now, manually create events.db from fixture using SQL
+  File.foreach(file_path) do |line|
+    next if line.strip.empty?
+    event = JSON.parse(line)
 
-fixture_path = File.expand_path("test/fixtures/sessions/baseline_fixture.jsonl", __dir__)
+    phase = event["phase"]
+    session_id = event["session_id"]
+    actor = event["actor"]
+    turn = event["turn"] || event["n"]
+    at = event["at"]
+    iteration = event["iteration"]
+    tool = event["name"] || event["tool"]
+    ok = event["ok"]
+    input_tokens = event["input_tokens"]
+    output_tokens = event["output_tokens"]
+    cache_read_tokens = event["cache_read_input_tokens"]
+    cache_write_tokens = event["cache_creation_input_tokens"]
+    cost_usd = event["cost_usd"]
+    model = event["model"]
+    provider = event["provider"]
+    tools_sent = event["tools_sent"]
+    room = event["room"]
+    details = JSON.generate(event)
+
+    db.execute(
+      "INSERT INTO events (session_id, actor, turn, iteration, at, phase, tool, ok, " \
+      "input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, " \
+      "tools_sent, cost_usd, model, provider, room, details) " \
+      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [session_id, actor, turn, iteration, at, phase, tool, ok,
+       input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+       tools_sent, cost_usd, model, provider, room, details]
+    )
+  end
+rescue => e
+  puts "Error loading #{file_path}: #{e.message}"
+end
+
 db_path = File.expand_path(".boukensha/events.db", __dir__)
+sessions_dir = File.expand_path(".boukensha/sessions", __dir__)
+fixture_path = File.expand_path("test/fixtures/sessions/baseline_fixture.jsonl", __dir__)
 
-puts "Setting up events.db from fixture..."
-puts "Fixture: #{fixture_path}"
+puts "Setting up events database..."
 puts "Database: #{db_path}"
+puts "Sessions dir: #{sessions_dir}"
 
-# Create .boukensha directory
+# Create .boukensha and sessions directory
 db_dir = File.dirname(db_path)
-Dir.mkdir(db_dir) unless Dir.exist?(db_dir)
+FileUtils.mkdir_p(db_dir)
+FileUtils.mkdir_p(sessions_dir)
 
-# Remove old database
+# Create fresh database
 File.delete(db_path) if File.exist?(db_path)
 
 # Create connection
-db = SQLite3.open(db_path)
+db = SQLite3::Database.new(db_path)
 db.results_as_hash = true
 db.execute("PRAGMA journal_mode = WAL")
 db.execute("PRAGMA synchronous = NORMAL")
@@ -64,46 +100,24 @@ db.execute("CREATE INDEX IF NOT EXISTS idx_events_session_phase ON events(sessio
 db.execute("CREATE INDEX IF NOT EXISTS idx_events_session_turn ON events(session_id, turn)")
 db.execute("CREATE INDEX IF NOT EXISTS idx_events_actor ON events(session_id, actor)")
 
-# Load fixture JSONL
-File.foreach(fixture_path) do |line|
-  next if line.strip.empty?
-  event = JSON.parse(line)
+# Load fixture if it exists
+if File.exist?(fixture_path)
+  puts "  Loading fixture: #{File.basename(fixture_path)}"
+  load_events(db, fixture_path)
+end
 
-  phase = event["phase"]
-  session_id = event["session_id"]
-  actor = event["actor"]
-  turn = event["turn"]
-  at = event["at"]
-
-  iteration = event["iteration"]
-  tool = event["name"] || event["tool"]
-  ok = event["ok"]
-
-  input_tokens = event["input_tokens"]
-  output_tokens = event["output_tokens"]
-  cache_read_tokens = event["cache_read_input_tokens"]
-  cache_write_tokens = event["cache_creation_input_tokens"]
-  cost_usd = event["cost_usd"]
-
-  model = event["model"]
-  provider = event["provider"]
-  tools_sent = event["tools_sent"]
-  room = event["room"]
-
-  details = JSON.generate(event)
-
-  db.execute(
-    "INSERT INTO events (session_id, actor, turn, iteration, at, phase, tool, ok, " \
-    "input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, " \
-    "tools_sent, cost_usd, model, provider, room, details) " \
-    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [session_id, actor, turn, iteration, at, phase, tool, ok,
-     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
-     tools_sent, cost_usd, model, provider, room, details]
-  )
+# Load all JSONL files from sessions directory
+session_files = Dir.glob(File.join(sessions_dir, "*.jsonl")).sort
+if session_files.any?
+  session_files.each do |file|
+    puts "  Loading session: #{File.basename(file)}"
+    load_events(db, file)
+  end
+else
+  puts "  No additional sessions found in #{sessions_dir}"
 end
 
 db.close
 
 puts "✓ events.db created at #{db_path}"
-puts "✓ Token dashboard ready at http://localhost:9292/sessions/baseline-fixture-001/tokens"
+puts "✓ Token dashboard ready"

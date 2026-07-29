@@ -7,6 +7,7 @@ all observability in week 2.
 
 import json
 import sqlite3
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -49,8 +50,7 @@ class EventStore:
             self._insert(event)
         except sqlite3.Error as e:
             # Degrade to a warning — DB failure must never end a turn
-            from boukensha import state
-            state.warn(f"events.db write failed, continuing: {e}")
+            print(f"[boukensha] warning: events.db write failed, continuing: {e}", file=sys.stderr)
 
     def _insert(self, event: Dict[str, Any]) -> None:
         """Insert an event into the database.

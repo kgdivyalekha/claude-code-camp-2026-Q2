@@ -1,5 +1,7 @@
 require "sinatra/base"
 require "time"
+require "sqlite3"
+require "json"
 
 require_relative "session"
 require_relative "ansi"
@@ -156,6 +158,72 @@ module LogViz
       erb :session
     end
 
+    # API endpoint for live updates
+    get "/api/sessions/:id/cost" do
+      id = File.basename(params[:id])
+      db_path = File.expand_path("../.boukensha/events.db", settings.root)
+      analytics = Analytics.new(db_path)
+
+      halt 404, { error: "Session not found" }.to_json unless analytics.ready?
+
+      cost_summary = analytics.cost_summary(id)
+
+      # Fall back to session file if database has no data yet
+      if cost_summary[:turns].to_i.zero?
+        path = File.join(settings.sessions_dir, "#{id}.jsonl")
+        if File.file?(path)
+          session = Session.load(path)
+          cost_summary = {
+            total_usd: session.estimated_cost || 0.0,
+            turns: session.turn_count_real,
+            cost_per_turn_usd: session.estimated_cost && session.turn_count_real > 0 ? session.estimated_cost / session.turn_count_real : 0.0,
+            input_tokens: session.total_input_tokens,
+            output_tokens: session.total_output_tokens
+          }
+          $stderr.puts "Loaded session from file: #{id} -> cost: #{cost_summary[:total_usd]}"
+        else
+          $stderr.puts "Session file not found: #{path}"
+        end
+      end
+
+      analytics.close
+
+      content_type :json
+      cost_summary.to_json
+    end
+
+    # Debug endpoint: show raw database data for a session
+    get "/api/sessions/:id/debug" do
+      id = File.basename(params[:id])
+      db_path = File.expand_path("../.boukensha/events.db", settings.root)
+
+      halt 404, { error: "Database not found" }.to_json unless File.exist?(db_path)
+
+      conn = SQLite3::Database.new(db_path)
+      conn.results_as_hash = true
+
+      # Get sample events
+      events = conn.execute(
+        "SELECT id, phase, model, cost_usd, input_tokens, output_tokens FROM events WHERE session_id = ? LIMIT 10",
+        [id]
+      )
+
+      # Get summary
+      summary = conn.execute(
+        "SELECT COUNT(*) as count, SUM(cost_usd) as total_cost FROM events WHERE session_id = ? AND phase = 'response'",
+        [id]
+      ).first
+
+      conn.close
+
+      content_type :json
+      {
+        session_id: id,
+        sample_events: events,
+        summary: summary
+      }.to_json
+    end
+
     # Test route to verify Sinatra routing works
     get "/sessions/:id/tokens_test" do
       "Token Dashboard Ready - Session: #{params[:id]}"
@@ -177,7 +245,22 @@ module LogViz
 
       @ready = true
       @token_breakdown = @analytics.token_breakdown(id)
-      @cost_summary = @analytics.cost_summary(id)
+
+      # Use database data if available, otherwise fall back to session file
+      db_cost = @analytics.cost_summary(id)
+      if db_cost[:turns].to_i > 0
+        @cost_summary = db_cost
+      else
+        # Fall back to session file calculation for live sessions with no DB data yet
+        @cost_summary = {
+          total_usd: @session.estimated_cost || 0.0,
+          turns: @session.turn_count_real,
+          cost_per_turn_usd: @session.estimated_cost && @session.turn_count_real > 0 ? @session.estimated_cost / @session.turn_count_real : 0.0,
+          input_tokens: @session.total_input_tokens,
+          output_tokens: @session.total_output_tokens
+        }
+      end
+
       @schema_overhead = @analytics.schema_overhead(id)
       @cache_effectiveness = @analytics.cache_effectiveness(id)
       @tokens_per_turn = @analytics.tokens_per_turn(id)
@@ -186,6 +269,43 @@ module LogViz
       @tool_usage = @analytics.tool_usage(id)
 
       erb :tokens
+    end
+
+    # Sessions analytics dashboard — shows all sessions with token breakdown
+    get "/analytics" do
+      db_path = File.expand_path("../.boukensha/events.db", settings.root)
+      @analytics = Analytics.new(db_path)
+
+      unless @analytics.ready?
+        @ready = false
+        return erb :analytics_empty
+      end
+
+      @ready = true
+
+      # Get all unique session IDs from database
+      conn = SQLite3::Database.new(db_path)
+      conn.results_as_hash = true
+      conn.execute("PRAGMA busy_timeout = 5000")
+
+      sessions_data = conn.execute("""
+        SELECT DISTINCT session_id FROM events ORDER BY session_id DESC
+      """)
+
+      @sessions = sessions_data.map do |row|
+        session_id = row["session_id"]
+        {
+          id: session_id,
+          breakdown: @analytics.token_breakdown(session_id),
+          cost: @analytics.cost_summary(session_id),
+          schema: @analytics.schema_overhead(session_id),
+          cache: @analytics.cache_effectiveness(session_id),
+          turns_data: @analytics.tokens_per_turn(session_id),
+        }
+      end
+
+      conn.close
+      erb :analytics
     end
   end
 end

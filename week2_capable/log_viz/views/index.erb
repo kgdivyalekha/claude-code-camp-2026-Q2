@@ -1,4 +1,30 @@
-<h1>Sessions</h1>
+<div class="page-header">
+  <h1>Sessions</h1>
+  <a href="/analytics" class="btn-analytics">📊 View Analytics</a>
+</div>
+
+<style>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.btn-analytics {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: #0066cc;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.btn-analytics:hover {
+  background-color: #0052a3;
+}
+</style>
 
 <% if @sessions.empty? %>
   <p class="empty">No session logs found in <code><%= settings.sessions_dir %></code>.</p>

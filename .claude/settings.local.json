@@ -178,7 +178,25 @@
       "Bash(ruby --version)",
       "Bash(apt-get update *)",
       "Bash(apt-get install *)",
-      "Bash(bash dashboard/start_dashboard.sh)"
+      "Bash(bash dashboard/start_dashboard.sh)",
+      "Bash(bundle exec *)",
+      "Bash(ruby test_cost_calculation.rb)",
+      "Bash(xargs grep -l \"model_pricing_rates\")",
+      "Bash(sqlite3 *)",
+      "Bash(ruby dashboard/setup_events_db.rb)",
+      "Bash(mkdir -p .boukensha/sessions)",
+      "Bash(cp ../.boukensha/sessions/*.jsonl .boukensha/sessions/)",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\")",
+      "Bash(curl -s \"http://localhost:9292/api/sessions/20260729T231434Z-f5bfead0/cost\")",
+      "Bash(pkill -f \"rackup\")",
+      "Bash(curl -s \"http://localhost:9292/sessions/20260729T231434Z-f5bfead0/tokens\")",
+      "Bash(curl -s \"http://localhost:9292/sessions/20260729T231434Z-f5bfead0\")",
+      "Bash(mv measure_baseline.py milestone_docs/scripts/)",
+      "Bash(mv load_sessions.py milestone_docs/scripts/)",
+      "Bash(mv sync_events.py milestone_docs/scripts/)",
+      "Bash(mv test_event_store.py milestone_docs/scripts/)",
+      "Bash(mv test_cost_calculation.rb milestone_docs/scripts/)",
+      "Bash(grep -v \"^\\\\\\\\.\")"
     ]
   }
 }

@@ -63,12 +63,23 @@ class OpenAI(BackendBase):
                 "description": tool.description,
                 "parameters": {
                     "type": "object",
-                    "properties": tool.parameters,
-                    "required": list(tool.parameters.keys()),
+                    "properties": self._filter_properties(tool.parameters),
+                    "required": self._get_required_params(tool.parameters),
                 },
             }
             for tool in tools.values()
         ]
+
+    def _filter_properties(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Filter out the 'required' field from parameter definitions for the schema."""
+        return {
+            name: {k: v for k, v in param.items() if k != "required"}
+            for name, param in parameters.items()
+        }
+
+    def _get_required_params(self, parameters: Dict[str, Any]) -> List[str]:
+        """Extract only the truly required parameter names."""
+        return [name for name, param in parameters.items() if isinstance(param, dict) and param.get("required", False)]
 
     def to_payload(
         self,

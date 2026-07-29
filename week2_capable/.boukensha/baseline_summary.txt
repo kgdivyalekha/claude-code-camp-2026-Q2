@@ -1,9 +1,9 @@
 Token Baseline Measurement
-Session: baseline-fixture-001
-Total cost: $0.2070
-Total input tokens: 11,500
-Total output tokens: 780
-Turns: 3
-Schema overhead: 96.1% of input
-Cache hit rate: 13.9%
-Avg iterations/turn: 1.7
+Session: 20260729T192414Z-d62d1112
+Total cost: $0.0036
+Total input tokens: 65,088
+Total output tokens: 1,033
+Turns: 1
+Schema overhead: 0.0% of input
+Cache hit rate: 0.0%
+Avg iterations/turn: 0.0
