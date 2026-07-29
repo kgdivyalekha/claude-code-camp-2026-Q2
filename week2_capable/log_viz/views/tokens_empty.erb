@@ -1,0 +1,41 @@
+<div class="tokens-empty">
+  <div class="nav">
+    <a href="/sessions/<%= @session.id %>">← Back to Transcript</a>
+  </div>
+
+  <h1>Token Dashboard — No Data</h1>
+
+  <div class="no-data-message">
+    <p>
+      The token dashboard requires <code>events.db</code> to be populated
+      by <code>EventStore</code>.
+    </p>
+
+    <p>
+      <strong>To capture token data:</strong>
+    </p>
+
+    <ol>
+      <li>
+        Attach <code>EventStore</code> to your logger in the agent:
+        <pre>store = EventStore.new()
+store.attach(logger)
+# Now run the agent; events will be written to .boukensha/events.db</pre>
+      </li>
+      <li>
+        Refresh this page once the session completes.
+      </li>
+    </ol>
+
+    <p>
+      <strong>To analyze existing week1 sessions:</strong>
+    </p>
+
+    <pre>python3 measure_baseline.py .boukensha/sessions/session.jsonl</pre>
+
+    <p>
+      This will populate <code>events.db</code> from the JSONL file,
+      and you can then view this dashboard.
+    </p>
+  </div>
+</div>

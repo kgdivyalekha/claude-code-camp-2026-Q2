@@ -940,7 +940,7 @@ Actors run in threads, each with its own `Agent`, `Context`, `Logger`, and
 ## 9. Layout
 
 ```
-week2_capable/
+week2_capable/  
 ├── src/boukensha/
 │   ├── db.py                      # open_db(): WAL + mmap + pragmas
 │   ├── logger.py                  # +event(), +turn/actor stamping      [modified]

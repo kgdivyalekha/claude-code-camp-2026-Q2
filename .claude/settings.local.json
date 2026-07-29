@@ -169,7 +169,16 @@
       "Artifact",
       "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/**)",
       "Bash(python -m pytest test/test_db.py -v)",
-      "Bash(./venv/bin/python -m pytest test/test_db.py -v)"
+      "Bash(./venv/bin/python -m pytest test/test_db.py -v)",
+      "Bash(ruby -c lib/log_viz/analytics.rb)",
+      "Bash(ruby -c lib/log_viz/app.rb)",
+      "Bash(git -C week2_capable log --all --full-history --oneline -- dashboard/start_dashboard.sh)",
+      "Bash(./start_dashboard.sh)",
+      "Bash(dashboard/./start_dashboard.sh *)",
+      "Bash(ruby --version)",
+      "Bash(apt-get update *)",
+      "Bash(apt-get install *)",
+      "Bash(bash dashboard/start_dashboard.sh)"
     ]
   }
 }

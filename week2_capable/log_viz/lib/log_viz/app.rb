@@ -156,13 +156,19 @@ module LogViz
       erb :session
     end
 
+    # Test route to verify Sinatra routing works
+    get "/sessions/:id/tokens_test" do
+      "Token Dashboard Ready - Session: #{params[:id]}"
+    end
+
     get "/sessions/:id/tokens" do
       id   = File.basename(params[:id])
       path = File.join(settings.sessions_dir, "#{id}.jsonl")
       halt 404, "Session not found: #{id}" unless File.file?(path)
 
       @session = Session.load(path)
-      @analytics = Analytics.new
+      db_path = File.expand_path("../.boukensha/events.db", settings.root)
+      @analytics = Analytics.new(db_path)
 
       unless @analytics.ready?
         @ready = false

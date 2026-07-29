@@ -1,0 +1,22 @@
+{"phase": "session_start", "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:00+00:00"}
+{"phase": "turn", "n": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:01+00:00", "turn": 1}
+{"phase": "tool_call", "name": "look", "args": {}, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:02+00:00", "turn": 1}
+{"phase": "tool_result", "name": "look", "result": "You are in a dark room. Exits: north, south", "ok": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:03+00:00", "turn": 1}
+{"phase": "response", "text": "I'll explore the dark room.", "stop_reason": "tool_use", "input_tokens": 2100, "output_tokens": 180, "cost_usd": 0.0435, "provider": "anthropic", "model": "claude-3-5-sonnet", "tools_sent": 26, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:04+00:00", "turn": 1, "iteration": 1}
+{"phase": "tool_call", "name": "move", "args": {"direction": "north"}, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:05+00:00", "turn": 1}
+{"phase": "tool_result", "name": "move", "result": "You move north into a temple. Exits: north, south, east", "ok": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:06+00:00", "turn": 1}
+{"phase": "response", "text": "I'll continue exploring north.", "stop_reason": "tool_use", "input_tokens": 1950, "output_tokens": 160, "cost_usd": 0.0405, "provider": "anthropic", "model": "claude-3-5-sonnet", "tools_sent": 26, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:07+00:00", "turn": 1, "iteration": 2}
+{"phase": "turn_end", "reason": "max_iterations", "iterations": 2, "tokens": 4230, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:08+00:00", "turn": 1}
+{"phase": "turn", "n": 2, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:09+00:00", "turn": 2}
+{"phase": "tool_call", "name": "look", "args": {}, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:10+00:00", "turn": 2}
+{"phase": "tool_result", "name": "look", "result": "Temple. Exits: north, south, east", "ok": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:11+00:00", "turn": 2}
+{"phase": "response", "text": "I'll explore east.", "stop_reason": "tool_use", "input_tokens": 2050, "output_tokens": 140, "cost_usd": 0.0424, "provider": "anthropic", "model": "claude-3-5-sonnet", "tools_sent": 26, "cache_read_input_tokens": 500, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:12+00:00", "turn": 2, "iteration": 1}
+{"phase": "tool_call", "name": "move", "args": {"direction": "east"}, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:13+00:00", "turn": 2}
+{"phase": "tool_result", "name": "move", "result": "You move east into a marketplace. Exits: west, north, south, east", "ok": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:14+00:00", "turn": 2}
+{"phase": "response", "text": "Marketplace found! I'll check for items.", "stop_reason": "tool_use", "input_tokens": 1920, "output_tokens": 170, "cost_usd": 0.0415, "provider": "anthropic", "model": "claude-3-5-sonnet", "tools_sent": 26, "cache_read_input_tokens": 500, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:15+00:00", "turn": 2, "iteration": 2}
+{"phase": "turn_end", "reason": "end_turn", "iterations": 2, "tokens": 3970, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:16+00:00", "turn": 2}
+{"phase": "turn", "n": 3, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:17+00:00", "turn": 3}
+{"phase": "tool_call", "name": "look", "args": {}, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:18+00:00", "turn": 3}
+{"phase": "tool_result", "name": "look", "result": "Marketplace (visited 2x). Exits: west, north, south, east", "ok": 1, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:19+00:00", "turn": 3}
+{"phase": "response", "text": "Exploring more.", "stop_reason": "tool_use", "input_tokens": 1880, "output_tokens": 130, "cost_usd": 0.0391, "provider": "anthropic", "model": "claude-3-5-sonnet", "tools_sent": 26, "cache_read_input_tokens": 600, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:20+00:00", "turn": 3, "iteration": 1}
+{"phase": "turn_end", "reason": "end_turn", "iterations": 1, "tokens": 1880, "session_id": "baseline-fixture-001", "at": "2026-07-29T10:00:21+00:00", "turn": 3}

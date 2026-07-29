@@ -1,0 +1,228 @@
+<% if !@ready %>
+  <div class="no-data">
+    <p>events.db not found. Run the agent with EventStore attached to generate token data.</p>
+  </div>
+<% else %>
+
+<div class="tokens-dashboard">
+  <div class="nav">
+    <a href="/sessions/<%= @session.id %>">← Back to Transcript</a>
+  </div>
+
+  <h1>Token Baseline: <%= @session.id %></h1>
+
+  <!-- Cost Summary -->
+  <section class="cost-summary">
+    <h2>Cost Summary</h2>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="label">Total Cost</div>
+        <div class="value"><%= fmt_cost(@cost_summary[:total_usd]) %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Turns</div>
+        <div class="value"><%= @cost_summary[:turns] %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Cost Per Turn</div>
+        <div class="value"><%= fmt_cost(@cost_summary[:cost_per_turn_usd]) %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Total Input</div>
+        <div class="value"><%= fmt_tokens(@cost_summary[:input_tokens]) %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Total Output</div>
+        <div class="value"><%= fmt_tokens(@cost_summary[:output_tokens]) %></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Token Breakdown -->
+  <section class="token-breakdown">
+    <h2>Token Breakdown</h2>
+    <p class="description">Estimated breakdown of where input tokens go (schema, history, results)</p>
+    <div class="breakdown-bars">
+      <div class="breakdown-row">
+        <div class="breakdown-label">Schema</div>
+        <div class="breakdown-bar">
+          <div class="bar-segment schema" style="width: <%= @token_breakdown[:schema_tokens].to_f / @token_breakdown[:total_input_tokens] * 100 rescue 0 %>%">
+            <%= fmt_tokens(@token_breakdown[:schema_tokens]) %>
+          </div>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-label">History</div>
+        <div class="breakdown-bar">
+          <div class="bar-segment history" style="width: <%= @token_breakdown[:history_tokens].to_f / @token_breakdown[:total_input_tokens] * 100 rescue 0 %>%">
+            <%= fmt_tokens(@token_breakdown[:history_tokens]) %>
+          </div>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-label">Results</div>
+        <div class="breakdown-bar">
+          <div class="bar-segment results" style="width: <%= @token_breakdown[:result_tokens].to_f / @token_breakdown[:total_input_tokens] * 100 rescue 0 %>%">
+            <%= fmt_tokens(@token_breakdown[:result_tokens]) %>
+          </div>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-label">Output</div>
+        <div class="breakdown-bar">
+          <div class="bar-segment output" style="width: 100%">
+            <%= fmt_tokens(@token_breakdown[:output_tokens]) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schema Overhead (§3.2 lever) -->
+  <section class="schema-overhead">
+    <h2>Schema Overhead (§3.2 — Tool Gating Lever)</h2>
+    <p class="description">Tool definitions sent per call. Target: reduce from 26 to 7-10 by gating on game phase.</p>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="label">Tools Sent</div>
+        <div class="value"><%= @schema_overhead[:tools_sent] %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Schema Tokens</div>
+        <div class="value"><%= fmt_tokens(@schema_overhead[:schema_tokens]) %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Percent of Input</div>
+        <div class="value"><%= @schema_overhead[:percent_of_input] %>%</div>
+      </div>
+    </div>
+    <% if @schema_overhead[:percent_of_input] && @schema_overhead[:percent_of_input] > 25 %>
+      <p class="callout">⚠ High schema overhead: gating tools by phase (M4) would reduce this.</p>
+    <% end %>
+  </section>
+
+  <!-- Cache Effectiveness (§3.5 lever) -->
+  <section class="cache-effectiveness">
+    <h2>Cache Effectiveness (§3.5 — Prompt Caching Lever)</h2>
+    <p class="description">Prompt cache hit rate. Target: ≥60% on sessions &gt; 20 turns.</p>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="label">Cache Hit Rate</div>
+        <div class="value"><%= @cache_effectiveness[:hit_rate] %>%</div>
+      </div>
+      <div class="metric">
+        <div class="label">Cache Read Tokens</div>
+        <div class="value"><%= fmt_tokens(@cache_effectiveness[:cache_read_tokens]) %></div>
+      </div>
+      <div class="metric">
+        <div class="label">Cache Write Tokens</div>
+        <div class="value"><%= fmt_tokens(@cache_effectiveness[:cache_write_tokens]) %></div>
+      </div>
+    </div>
+    <% if @cache_effectiveness[:hit_rate] && @cache_effectiveness[:hit_rate] < 10 %>
+      <p class="callout">ℹ No cache hits yet. Enable prompt caching in config (M8).</p>
+    <% end %>
+  </section>
+
+  <!-- Tokens Per Turn -->
+  <% if @tokens_per_turn.any? %>
+    <section class="tokens-per-turn">
+      <h2>Tokens Per Turn</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Turn</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Iterations</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @tokens_per_turn.each do |row| %>
+            <tr>
+              <td><%= row["turn"] %></td>
+              <td><%= fmt_tokens(row["input_tokens"]) %></td>
+              <td><%= fmt_tokens(row["output_tokens"]) %></td>
+              <td><%= row["iterations"] %></td>
+              <td><%= fmt_cost(row["cost_usd"]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <!-- Iteration Count (cost scales ~N×context) -->
+  <% if @iterations_per_turn.any? %>
+    <section class="iterations-per-turn">
+      <h2>Iterations Per Turn</h2>
+      <p class="description">Cost scales roughly N×context_size. Fewer iterations = cheaper turns.</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Turn</th>
+            <th>Iterations</th>
+            <th>Input Tokens</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @iterations_per_turn.each do |row| %>
+            <tr>
+              <td><%= row["turn"] %></td>
+              <td><%= row["iterations"] %></td>
+              <td><%= fmt_tokens(row["input_tokens"]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <!-- Tool Usage -->
+  <% if @tool_usage.any? %>
+    <section class="tool-usage">
+      <h2>Tool Usage</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Calls</th>
+            <th>Success</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @tool_usage.each do |row| %>
+            <tr>
+              <td><code><%= row["tool"] %></code></td>
+              <td><%= row["call_count"] %></td>
+              <td><%= row["success_count"] || 0 %></td>
+              <td><%= row["error_count"] || 0 %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <!-- Summary -->
+  <section class="summary">
+    <h2>Baseline Summary</h2>
+    <p>
+      This is the token baseline for session <strong><%= @session.id %></strong>.
+      Every optimization (M3–M8) will be measured against this to verify ≥50% reduction in tokens/room.
+    </p>
+    <p>
+      Key metrics to watch:
+    </p>
+    <ul>
+      <li><strong>Schema overhead</strong> (now <%= @schema_overhead[:percent_of_input] %>%) → Target &lt;10% with tool gating (M4)</li>
+      <li><strong>Cache hit rate</strong> (now <%= @cache_effectiveness[:hit_rate] %>%) → Target ≥60% with prompt caching (M8)</li>
+      <li><strong>Iterations/turn</strong> → Identify and fix loops that cause quadratic cost</li>
+    </ul>
+  </section>
+
+</div>
+
+<% end %>

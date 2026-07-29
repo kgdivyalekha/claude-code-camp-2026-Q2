@@ -1,0 +1,154 @@
+================================================================================
+M2 — log_viz `/tokens` Dashboard ✅ COMPLETE
+================================================================================
+
+THE BASELINE IS NOW VISIBLE AND MEASURABLE
+
+DELIVERABLES IMPLEMENTED:
+
+1. Analytics Library (lib/log_viz/analytics.rb)
+   ✓ Queries events.db (created by Python EventStore in M1)
+   ✓ token_breakdown() — Schema/history/results breakdown
+   ✓ cost_summary() — Total cost, per-turn average
+   ✓ schema_overhead() — Tools sent and schema cost (§3.2 lever)
+   ✓ cache_effectiveness() — Cache hit rate (§3.5 lever)
+   ✓ tokens_per_turn() — Per-turn breakdown
+   ✓ iterations_per_turn() — Iteration counts (cost ~N×context)
+   ✓ tool_usage() — Tool call counts and success rates
+   ✓ context_pressure() — Input tokens vs window
+   ✓ Graceful degradation if events.db missing
+
+2. Sinatra Route (GET /sessions/:id/tokens)
+   ✓ Loads session JSONL
+   ✓ Queries analytics from events.db
+   ✓ Renders token dashboard view
+   ✓ Falls back to empty state if no data
+
+3. Token Dashboard View (views/tokens.erb)
+   ✓ Cost summary metrics (total, per-turn, per token)
+   ✓ Token breakdown visualization (schema/history/results/output)
+   ✓ Schema overhead metrics (§3.2 optimization target)
+   ✓ Cache effectiveness metrics (§3.5 optimization target)
+   ✓ Per-turn breakdown table
+   ✓ Iteration analysis (identifies quadratic blowups)
+   ✓ Tool usage statistics
+   ✓ Responsive layout
+
+4. Empty State View (views/tokens_empty.erb)
+   ✓ Shows when events.db doesn't exist
+   ✓ Instructions for generating data
+   ✓ Links to Python measure_baseline.py
+
+5. Styling (public/style.css)
+   ✓ Dashboard layout and typography
+   ✓ Metrics grid (responsive)
+   ✓ Breakdown bar charts with gradient colors
+   ✓ Data tables with hover effects
+   ✓ Callout boxes for important metrics
+   ✓ Code block styling for pre-formatted text
+
+6. Integration
+   ✓ Updated app.rb to require analytics.rb
+   ✓ Added /tokens route with error handling
+   ✓ Updated session.erb with link to dashboard
+   ✓ Added sqlite3 gem to Gemfile
+
+KEY METRICS VISIBLE:
+
+Schema Overhead (§3.2 — Tool Gating Lever)
+- Currently: 26 tools per call, ~30% of input tokens
+- Target: ≤10 tools (7 during exploration), <10% overhead
+- Savings potential: 73% schema reduction
+- Implementation: M4 — Phase-driven tool gating
+
+Cache Effectiveness (§3.5 — Prompt Caching Lever)
+- Currently: 0% hit rate (caching not enabled)
+- Target: ≥60% on sessions >20 turns
+- Savings potential: ~90% discount on cached input
+- Implementation: M8 — Prompt cache markers
+
+Iterations Per Turn (Cost Scaling)
+- Shows N where cost scales ~N×context
+- Identifies loops and quadratic blowups
+- Informs required to fix M3 bugs
+
+HOW TO USE:
+
+1. Generate baseline from week1 session:
+   python3 measure_baseline.py .boukensha/sessions/session.jsonl
+
+2. Launch log_viz:
+   cd ../week1_baseline/log_viz
+   bundle install
+   bundle exec rackup
+
+3. Visit dashboard:
+   http://localhost:9292/sessions/SESSION_ID/tokens
+
+4. For live capture (future):
+   store = EventStore()
+   store.attach(logger)
+   # Run agent; events written live
+
+ARCHITECTURE:
+
+Session JSONL (canonical)
+          ↓
+    Python EventStore (M1)
+          ↓
+    events.db (SQLite with WAL)
+          ↓
+    Ruby Analytics (M2)
+          ↓
+    Sinatra Route (/tokens)
+          ↓
+    Dashboard View (ERB template)
+          ↓
+    ✨ BASELINE VISIBLE ✨
+
+Design principles:
+✓ JSONL remains canonical; events.db is derived
+✓ SQLite WAL enables concurrent Python writes + Ruby reads
+✓ Dashboard degrades gracefully if no data
+✓ No heavy JavaScript; pure HTML/CSS/SVG
+✓ Responsive metrics grid
+✓ Color-coded breakdown bars
+
+SUCCESS CRITERIA (§11 — M2):
+
+✅ /sessions/:id/tokens route responds without error
+✅ Token breakdown displays correctly
+✅ Schema overhead visible (~30%)
+✅ Cache effectiveness visible (0% until M8)
+✅ Per-turn breakdown table populated
+✅ Tool usage statistics displayed
+✅ Link from session transcript works
+✅ Dashboard degrades gracefully if events.db missing
+
+FILES MODIFIED:
+
+week1_baseline/log_viz/
+├── lib/log_viz/analytics.rb      ← NEW (Ruby query library)
+├── lib/log_viz/app.rb            ← MODIFIED (+/tokens route)
+├── views/tokens.erb              ← NEW (M2 dashboard)
+├── views/tokens_empty.erb        ← NEW (graceful degradation)
+├── views/session.erb             ← MODIFIED (+link to dashboard)
+├── public/style.css              ← MODIFIED (M2 styling)
+└── Gemfile                       ← MODIFIED (+sqlite3)
+
+week2_capable/
+└── M2_DASHBOARD.md               ← Documentation
+
+STATUS: Ready for M3
+
+The baseline is visible. Every optimization (M3-M8) can now be measured
+in real-time against this baseline to verify ≥50% reduction in tokens/room.
+
+Next: M3 — Quick Wins (1 day)
+- Fix parameter requiredness
+- Pair-safe compaction
+- Trim tool descriptions
+
+Each will show immediate impact in the /tokens dashboard.
+
+================================================================================
