@@ -6,6 +6,7 @@ require "json"
 require_relative "session"
 require_relative "ansi"
 require_relative "analytics"
+require_relative "audit_db"  # M5 integration
 
 module LogViz
   class App < Sinatra::Base
@@ -306,6 +307,83 @@ module LogViz
 
       conn.close
       erb :analytics
+    end
+
+    # M5 Permissions Dashboard — show permission decisions and audit trail
+    get "/sessions/:id/permissions" do
+      id = File.basename(params[:id])
+      path = File.join(settings.sessions_dir, "#{id}.jsonl")
+      halt 404, "Session not found: #{id}" unless File.file?(path)
+
+      @session = Session.load(path)
+      @audit = AuditDB.new
+
+      unless @audit.available?
+        @audit_available = false
+        return erb :permissions_empty
+      end
+
+      @audit_available = true
+      @summary = @audit.session_summary(id)
+      @entries = @audit.entries(id, 50)
+      @denied_calls = @audit.denied_calls(id)
+      @tool_usage = @audit.tool_usage(id)
+      @rate_violations = @audit.rate_limit_violations(id)
+
+      erb :permissions
+    end
+
+    # M5 Actors Dashboard — show who played and their roles
+    get "/sessions/:id/actors" do
+      id = File.basename(params[:id])
+      path = File.join(settings.sessions_dir, "#{id}.jsonl")
+      halt 404, "Session not found: #{id}" unless File.file?(path)
+
+      @session = Session.load(path)
+      @audit = AuditDB.new
+
+      unless @audit.available?
+        @audit_available = false
+        return erb :actors_empty
+      end
+
+      @audit_available = true
+      @actors = @audit.actors_in_session(id)
+      @decisions_by_actor = @audit.decisions_by_actor(id)
+
+      @actor_details = @actors.map do |actor_id|
+        {
+          id: actor_id,
+          entries: @audit.actor_entries(id, actor_id, 20),
+          decisions: @audit.decisions_by_actor(id).select { |d| d["actor"] == actor_id }
+        }
+      end
+
+      erb :actors
+    end
+
+    # M5 Audit API endpoint — live audit trail updates
+    get "/api/sessions/:id/audit" do
+      id = File.basename(params[:id])
+      limit = (params[:limit] || 20).to_i
+      actor_filter = params[:actor]
+
+      @audit = AuditDB.new
+
+      halt 404, { error: "Audit database not found" }.to_json unless @audit.available?
+
+      entries = if actor_filter
+                  @audit.actor_entries(id, actor_filter, limit)
+                else
+                  @audit.entries(id, limit)
+                end
+
+      content_type :json
+      {
+        session_id: id,
+        entries: entries,
+        summary: @audit.session_summary(id),
+      }.to_json
     end
   end
 end

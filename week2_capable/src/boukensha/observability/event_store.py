@@ -31,6 +31,8 @@ class EventStore:
         self.db_path = db_path
         self.conn = open_db(db_path)
         self._init_schema()
+        # Track tools_sent per (session, turn, iteration) to backfill response events
+        self._tools_sent_cache = {}
 
     def attach(self, logger: Any) -> None:
         """Subscribe this store to a Logger instance.
@@ -81,8 +83,19 @@ class EventStore:
         # Metadata
         model = event.get("model")
         provider = event.get("provider")
-        tools_sent = event.get("tools_sent")
         room = event.get("room")
+
+        # Track tool_count from prompt events and apply to response events
+        cache_key = (session_id, turn, iteration)
+        if phase == "prompt":
+            tool_count = event.get("tool_count")
+            if tool_count is not None:
+                self._tools_sent_cache[cache_key] = tool_count
+
+        tools_sent = event.get("tools_sent")
+        if tools_sent is None and phase == "response":
+            # Backfill from cached prompt event
+            tools_sent = self._tools_sent_cache.get(cache_key)
 
         # Full event as JSON for posterity
         details = json.dumps(event, default=str)

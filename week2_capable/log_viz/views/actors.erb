@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>M5 Actors - <%= @session.id %></title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; }
+    .header { background: #f5f5f5; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+    .header h1 { margin: 0 0 10px 0; }
+    .nav { margin: 10px 0; }
+    .nav a { margin-right: 15px; text-decoration: none; color: #0066cc; }
+    .nav a:hover { text-decoration: underline; }
+
+    .actors-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .actor-card { background: #f9f9f9; padding: 15px; border-radius: 4px; border-left: 4px solid #0066cc; }
+    .actor-id { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+    .actor-stat { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
+    .actor-stat .label { color: #666; }
+    .actor-stat .value { font-weight: bold; }
+
+    .section { margin-bottom: 30px; }
+    .section h2 { border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+    .section h3 { margin-top: 20px; font-size: 16px; color: #333; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background: #f5f5f5; padding: 10px; text-align: left; font-weight: 600; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    tr:hover { background: #f9f9f9; }
+
+    .allow { color: #28a745; font-weight: bold; }
+    .deny { color: #dc3545; font-weight: bold; }
+
+    .tool-name { font-family: monospace; }
+    .role-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .role-player { background: #d4edda; color: #155724; }
+    .role-observer { background: #d1ecf1; color: #0c5460; }
+    .role-admin { background: #f8d7da; color: #721c24; }
+
+    .chart-row { display: flex; align-items: center; margin: 8px 0; }
+    .chart-label { width: 100px; font-size: 12px; }
+    .chart-bar { display: flex; gap: 2px; }
+    .chart-segment { height: 20px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; }
+    .chart-segment.allow { background: #28a745; }
+    .chart-segment.deny { background: #dc3545; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>M5 Actors</h1>
+    <p>Session: <strong><%= @session.id %></strong></p>
+    <div class="nav">
+      <a href="/">Sessions</a>
+      <a href="/sessions/<%= @session.id %>">Transcript</a>
+      <a href="/sessions/<%= @session.id %>/tokens">Tokens</a>
+      <a href="/sessions/<%= @session.id %>/permissions">Permissions (M5)</a>
+      <a href="/sessions/<%= @session.id %>/actors">Actors (M5)</a>
+    </div>
+  </div>
+
+  <% if !@audit_available %>
+    <div style="background: #fff3cd; padding: 15px; border-radius: 4px; color: #856404;">
+      <strong>Audit Database Not Available</strong>
+      <p>The audit trail database (.boukensha/events.db) was not found. Enable M5 in your agent configuration to record actor and audit data.</p>
+    </div>
+  <% else %>
+
+    <!-- Actors Overview -->
+    <div class="section">
+      <h2>Actors in Session (<%= @actors.length %>)</h2>
+
+      <% if @actors.empty? %>
+        <p style="color: #999;">No actors found in this session.</p>
+      <% else %>
+        <div class="actors-list">
+          <% @actor_details.each do |actor| %>
+            <div class="actor-card">
+              <div class="actor-id"><%= actor[:id] %></div>
+              <div class="actor-stat">
+                <span class="label">Tool Calls:</span>
+                <span class="value"><%= actor[:entries].length %></span>
+              </div>
+              <% allowed = actor[:decisions].select { |d| d["verdict"] == "allow" }.sum { |d| d["count"] }
+                 denied = actor[:decisions].select { |d| d["verdict"] == "deny" }.sum { |d| d["count"] } %>
+              <div class="actor-stat">
+                <span class="label allow">Allowed:</span>
+                <span class="value allow"><%= allowed %></span>
+              </div>
+              <div class="actor-stat">
+                <span class="label deny">Denied:</span>
+                <span class="value deny"><%= denied %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Actor Details -->
+    <div class="section">
+      <h2>Actor Decision Breakdown</h2>
+
+      <% @actor_details.each do |actor| %>
+        <h3>🎭 <%= actor[:id] %></h3>
+
+        <!-- Permission Decisions Chart -->
+        <div class="chart-row">
+          <div class="chart-label"><strong><%= actor[:id] %></strong></div>
+          <div class="chart-bar">
+            <% allowed = actor[:decisions].select { |d| d["verdict"] == "allow" }.sum { |d| d["count"] }
+               denied = actor[:decisions].select { |d| d["verdict"] == "deny" }.sum { |d| d["count"] }
+               total = allowed + denied
+               allow_pct = total > 0 ? (allowed.to_f / total * 100).round : 0
+               deny_pct = total > 0 ? (denied.to_f / total * 100).round : 0 %>
+              <% if allowed > 0 %>
+                <div class="chart-segment allow" style="width: <%= allow_pct %>px; min-width: 40px;">
+                  <%= allowed %> ✓
+                </div>
+              <% end %>
+              <% if denied > 0 %>
+                <div class="chart-segment deny" style="width: <%= deny_pct %>px; min-width: 40px;">
+                  <%= denied %> ✗
+                </div>
+              <% end %>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <table>
+          <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Verdict</th>
+            <th>Rule</th>
+          </tr>
+          <% actor[:entries].first(10).each do |entry| %>
+            <tr>
+              <td style="font-size: 12px;"><%= entry["at"] %></td>
+              <td><span class="tool-name"><%= entry["action"] %></span></td>
+              <td><span class="<%= entry["verdict"] %>"><%= entry["verdict"].upcase %></span></td>
+              <td><%= entry["rule"] %></td>
+            </tr>
+          <% end %>
+        </table>
+
+        <% if actor[:entries].length > 10 %>
+          <p style="text-align: right; color: #999; font-size: 12px;">
+            Showing 10 of <%= actor[:entries].length %> recent entries
+          </p>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Decision Summary Table -->
+    <div class="section">
+      <h2>Decision Summary by Actor</h2>
+      <table>
+        <tr>
+          <th>Actor</th>
+          <th style="text-align: right;">Allow</th>
+          <th style="text-align: right;">Deny</th>
+          <th style="text-align: right;">Ask</th>
+          <th style="text-align: right;">Total</th>
+          <th style="text-align: right;">Allow Rate</th>
+        </tr>
+        <% @decisions_by_actor.group_by { |d| d["actor"] }.each do |actor_id, decisions| %>
+          <% allow = decisions.find { |d| d["verdict"] == "allow" }&.[]("count") || 0
+             deny = decisions.find { |d| d["verdict"] == "deny" }&.[]("count") || 0
+             ask = decisions.find { |d| d["verdict"] == "ask" }&.[]("count") || 0
+             total = allow + deny + ask
+             rate = total > 0 ? (allow.to_f / total * 100).round : 100 %>
+          <tr>
+            <td><strong><%= actor_id %></strong></td>
+            <td style="text-align: right;"><span class="allow"><%= allow %></span></td>
+            <td style="text-align: right;"><span class="deny"><%= deny %></span></td>
+            <td style="text-align: right;"><%= ask %></td>
+            <td style="text-align: right;"><strong><%= total %></strong></td>
+            <td style="text-align: right;"><strong><%= rate %>%</strong></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+
+  <% end %>
+
+  <hr>
+  <footer style="text-align: center; color: #999; font-size: 12px;">
+    <p>M5 Actors Dashboard | Multi-character support visualization</p>
+  </footer>
+</body>
+</html>

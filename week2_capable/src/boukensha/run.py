@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 from typing import Any, Callable, Dict, Optional
 
 from .agent import Agent
@@ -26,6 +27,16 @@ try:
     from .tui import Tui
 except ImportError:
     Tui = None  # type: ignore[assignment,misc]
+
+# M5 integration: optional GuardedRegistry and control imports
+try:
+    from .control.guarded_registry import GuardedRegistry
+    from .control.actors import Actor, Role
+    from .control.permissions import AllowList
+    from .control.hooks import HookRegistry
+    from .control.audit import AuditLog
+except ImportError:
+    GuardedRegistry = None  # type: ignore[assignment,misc]
 
 __version__ = "0.12.0"
 
@@ -73,6 +84,40 @@ def _register_mcp_servers(registry: Registry, cfg: Config) -> Dict[str, int]:
                 file=sys.stderr,
             )
     return summary
+
+
+def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Logger) -> Registry:
+    """Wrap a registry with GuardedRegistry for M5 permission recording.
+
+    Returns a GuardedRegistry if available, otherwise returns the original registry.
+    Creates an AuditLog in .boukensha/events.db to record all tool decisions.
+    """
+    if GuardedRegistry is None:
+        return registry
+
+    try:
+        # Create actor for this session
+        actor = Actor(session_id, session_id, Role.AGENT, session_id)
+
+        # Permissive default policy: allow all tools
+        policy = AllowList(["*__*"])
+
+        # Set up hooks and audit
+        hooks = HookRegistry()
+        audit = AuditLog(".boukensha/events.db")
+
+        # Wrap and return
+        return GuardedRegistry(
+            registry,
+            actor=actor,
+            policy=policy,
+            hooks=hooks,
+            logger=logger,
+            audit=audit,
+        )
+    except Exception as e:
+        print(f"[boukensha] warning: GuardedRegistry initialization failed: {e}", file=sys.stderr)
+        return registry
 
 
 def run(
@@ -184,6 +229,9 @@ def run(
         event_store.attach(logger)
     except Exception as e:
         print(f"[boukensha] warning: EventStore initialization failed: {e}", file=sys.stderr)
+
+    # M5 integration: wrap registry with GuardedRegistry for audit trail
+    registry = _wrap_with_guarded_registry(registry, task, logger)
 
     agent = Agent(
         context=ctx,
@@ -302,6 +350,11 @@ def repl(
         event_store.attach(logger)
     except Exception as e:
         print(f"[boukensha] warning: EventStore initialization failed: {e}", file=sys.stderr)
+
+    # M5 integration: wrap registry with GuardedRegistry for audit trail
+    # Use a session ID based on timestamp for REPL sessions
+    session_id = f"repl-{uuid.uuid4().hex[:12]}"
+    registry = _wrap_with_guarded_registry(registry, session_id, logger)
 
     repl_instance = Repl(
         context=ctx,

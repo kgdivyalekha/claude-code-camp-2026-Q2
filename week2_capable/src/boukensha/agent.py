@@ -8,6 +8,12 @@ from .logger import Logger
 from .prompt_builder import PromptBuilder
 from .registry import Registry
 
+# M5 integration: optional GuardedRegistry imports
+try:
+    from .control.guarded_registry import GuardedRegistry
+except ImportError:
+    GuardedRegistry = None  # M5 not available
+
 
 class Agent:
     """The agent loop — sends requests, dispatches tools, and knows when to stop."""
@@ -110,10 +116,34 @@ class Agent:
         return self.max_turn_tokens > 0 and self.context.turn_tokens >= self.max_turn_tokens
 
     def _call_opts(self) -> Dict[str, Any]:
+        """Build options for client.call(), including tools filtered by M4+M5."""
         opts: Dict[str, Any] = {}
         if self.max_output_tokens is not None:
             opts["max_output_tokens"] = self.max_output_tokens
+
+        # M5 integration: if registry is GuardedRegistry, extract actor and policy
+        # and pass them to to_tools() for permission-based pruning (M5)
+        actor, policy = self._get_actor_and_policy()
+        if actor is not None and policy is not None:
+            # Build tool list with M4 gating + M5 pruning
+            tools = self.builder.to_tools(actor=actor, policy=policy)
+            opts["tools"] = tools
+
         return opts
+
+    def _get_actor_and_policy(self) -> tuple[Optional[Any], Optional[Any]]:
+        """Extract actor and policy from GuardedRegistry if available.
+
+        Returns:
+            Tuple of (actor, policy) if registry is GuardedRegistry, else (None, None)
+        """
+        if GuardedRegistry is None:
+            return None, None
+
+        if isinstance(self.registry, GuardedRegistry):
+            return self.registry._actor, self.registry._policy
+
+        return None, None
 
     # Add this call's input+output to the cumulative turn total (the spend
     # budget) and refresh the known context size from input_tokens (compaction

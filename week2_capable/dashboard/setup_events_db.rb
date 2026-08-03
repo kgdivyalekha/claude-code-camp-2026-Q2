@@ -9,6 +9,8 @@ require "fileutils"
 def load_events(db, file_path)
   return unless File.exist?(file_path)
 
+  tools_sent_cache = {}
+
   File.foreach(file_path) do |line|
     next if line.strip.empty?
     event = JSON.parse(line)
@@ -28,9 +30,20 @@ def load_events(db, file_path)
     cost_usd = event["cost_usd"]
     model = event["model"]
     provider = event["provider"]
-    tools_sent = event["tools_sent"]
     room = event["room"]
     details = JSON.generate(event)
+
+    # Track tool_count from prompt events and apply to response events
+    cache_key = [session_id, turn, iteration]
+    if phase == "prompt"
+      tool_count = event["tool_count"]
+      tools_sent_cache[cache_key] = tool_count if tool_count
+    end
+
+    tools_sent = event["tools_sent"]
+    if tools_sent.nil? && phase == "response"
+      tools_sent = tools_sent_cache[cache_key]
+    end
 
     db.execute(
       "INSERT INTO events (session_id, actor, turn, iteration, at, phase, tool, ok, " \
@@ -46,9 +59,10 @@ rescue => e
   puts "Error loading #{file_path}: #{e.message}"
 end
 
-db_path = File.expand_path(".boukensha/events.db", __dir__)
-sessions_dir = File.expand_path(".boukensha/sessions", __dir__)
-fixture_path = File.expand_path("test/fixtures/sessions/baseline_fixture.jsonl", __dir__)
+project_root = File.dirname(__dir__)  # Parent of dashboard directory
+db_path = File.expand_path(".boukensha/events.db", project_root)
+sessions_dir = File.expand_path(".boukensha/sessions", project_root)
+fixture_path = File.expand_path("test/fixtures/sessions/baseline_fixture.jsonl", project_root)
 
 puts "Setting up events database..."
 puts "Database: #{db_path}"
@@ -106,15 +120,24 @@ if File.exist?(fixture_path)
   load_events(db, fixture_path)
 end
 
-# Load all JSONL files from sessions directory
+# Load all JSONL files from sessions directory(ies)
 session_files = Dir.glob(File.join(sessions_dir, "*.jsonl")).sort
+
+# Also load from root project sessions if different
+root_sessions_dir = File.expand_path("../.boukensha/sessions", project_root)
+if root_sessions_dir != sessions_dir
+  session_files.concat(Dir.glob(File.join(root_sessions_dir, "*.jsonl")).sort)
+  session_files.uniq!
+  session_files.sort!
+end
+
 if session_files.any?
   session_files.each do |file|
     puts "  Loading session: #{File.basename(file)}"
     load_events(db, file)
   end
 else
-  puts "  No additional sessions found in #{sessions_dir}"
+  puts "  No sessions found in #{sessions_dir}"
 end
 
 db.close

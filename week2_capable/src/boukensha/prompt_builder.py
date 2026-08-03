@@ -1,7 +1,11 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from .context import Context
 from .tokens.gate import gate  # M4: Tool gating
+
+if TYPE_CHECKING:
+    from .control.actors import Actor
+    from .control.permissions import Policy
 
 
 class PromptBuilder:
@@ -18,21 +22,38 @@ class PromptBuilder:
     def to_messages(self) -> List[Dict[str, Any]]:
         return self.backend.to_messages(self.context.messages)
 
-    def to_tools(self, phase: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get tools for API payload, optionally filtered by phase (M4).
+    def to_tools(
+        self,
+        phase: Optional[str] = None,
+        actor: Optional["Actor"] = None,
+        policy: Optional["Policy"] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get tools for API payload, filtered by phase (M4) and permissions (M5).
 
         Args:
             phase: Game phase for tool gating ("exploring", "fighting", "trading", "full").
                    If None, uses context's current_phase.
+            actor: Actor making the request (for M5 permission pruning).
+            policy: Permission policy (for M5 permission pruning).
 
         Returns:
             List of tool definitions formatted for the backend API.
+            Tools are filtered by phase (M4) and then by permissions (M5).
         """
         if phase is None:
             phase = self.context.current_phase
 
         # M4: Filter tools by phase
         visible_tools = gate().visible_tools_dict(phase, self.context.tools)
+
+        # M5: Prune tools that are statically denied by policy
+        if actor is not None and policy is not None:
+            denied = policy.statically_denied(actor)
+            visible_tools = {
+                name: tool for name, tool in visible_tools.items()
+                if name not in denied
+            }
+
         return self.backend.to_tools(visible_tools)
 
     def to_api_payload(

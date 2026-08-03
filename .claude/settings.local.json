@@ -219,7 +219,21 @@
       "Bash(ollama list *)",
       "Bash(netstat -tlnp)",
       "Bash(netstat -tuln)",
-      "Bash(xargs grep -l \"baseline\\\\|token\\\\|cost\")"
+      "Bash(xargs grep -l \"baseline\\\\|token\\\\|cost\")",
+      "Bash(grep -E \"^d|\\\\.py$\")",
+      "Bash(python -m pytest test/test_m5_permissions_hooks.py -v)",
+      "Bash(venv/bin/python -m pytest test/test_m5_permissions_hooks.py -v)",
+      "Bash(bash QUICK_VERIFY_M5.sh)",
+      "Bash(ruby setup_events_db.rb)",
+      "Bash(/c/Users/yaada/AppData/Local/Microsoft/WindowsApps/python3 *)",
+      "PowerShell(python --version)",
+      "Bash(npm list *)",
+      "Bash(\"/c/Program Files/MySQL/MySQL Workbench 8.0 CE/python.exe\" check_db.py)",
+      "Bash(node *)",
+      "Bash(bash list_sessions.sh)",
+      "Bash(/c/Users/yaada/AppData/Local/Programs/Ollama/ollama.exe --version)",
+      "Bash(grep '\\\\.md$')",
+      "Bash(grep -E '\\\\.\\(md|txt\\)$')"
     ]
   }
 }

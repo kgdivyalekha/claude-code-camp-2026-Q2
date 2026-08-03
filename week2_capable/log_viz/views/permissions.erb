@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>M5 Permissions - <%= @session.id %></title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; }
+    .header { background: #f5f5f5; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+    .header h1 { margin: 0 0 10px 0; }
+    .nav { margin: 10px 0; }
+    .nav a { margin-right: 15px; text-decoration: none; color: #0066cc; }
+    .nav a:hover { text-decoration: underline; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: #f9f9f9; padding: 15px; border-radius: 4px; border-left: 4px solid #0066cc; }
+    .stat-card .label { color: #666; font-size: 12px; text-transform: uppercase; }
+    .stat-card .value { font-size: 24px; font-weight: bold; margin-top: 5px; }
+    .stat-card.allow { border-left-color: #28a745; }
+    .stat-card.deny { border-left-color: #dc3545; }
+
+    .section { margin-bottom: 30px; }
+    .section h2 { border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { background: #f5f5f5; padding: 10px; text-align: left; font-weight: 600; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    tr:hover { background: #f9f9f9; }
+
+    .allow { color: #28a745; font-weight: bold; }
+    .deny { color: #dc3545; font-weight: bold; }
+    .ask { color: #ffc107; font-weight: bold; }
+
+    .tool-name { font-family: monospace; }
+    .rule-name { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+
+    .chart { margin: 20px 0; }
+    .bar { display: flex; align-items: center; margin: 8px 0; }
+    .bar-label { width: 150px; font-size: 12px; }
+    .bar-fill { background: #0066cc; height: 20px; border-radius: 3px; color: white; display: flex; align-items: center; padding: 0 5px; font-size: 11px; }
+    .bar-fill.allow { background: #28a745; }
+    .bar-fill.deny { background: #dc3545; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>M5 Permissions & Audit</h1>
+    <p>Session: <strong><%= @session.id %></strong></p>
+    <div class="nav">
+      <a href="/">Sessions</a>
+      <a href="/sessions/<%= @session.id %>">Transcript</a>
+      <a href="/sessions/<%= @session.id %>/tokens">Tokens</a>
+      <a href="/sessions/<%= @session.id %>/permissions">Permissions (M5)</a>
+      <a href="/sessions/<%= @session.id %>/actors">Actors (M5)</a>
+    </div>
+  </div>
+
+  <% if !@audit_available %>
+    <div style="background: #fff3cd; padding: 15px; border-radius: 4px; color: #856404;">
+      <strong>Audit Database Not Available</strong>
+      <p>The audit trail database (.boukensha/events.db) was not found. Enable M5 in your agent configuration to record permissions and audit data.</p>
+    </div>
+  <% else %>
+
+    <!-- Summary Statistics -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total Decisions</div>
+        <div class="value"><%= @summary[:total_decisions] %></div>
+      </div>
+      <div class="stat-card allow">
+        <div class="label">Allowed</div>
+        <div class="value"><%= @summary[:allow_count] %></div>
+      </div>
+      <div class="stat-card deny">
+        <div class="label">Denied</div>
+        <div class="value"><%= @summary[:deny_count] %></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Rules Applied</div>
+        <div class="value"><%= @summary[:rules_applied].length %></div>
+      </div>
+    </div>
+
+    <!-- Permission Rules Applied -->
+    <div class="section">
+      <h2>Permission Rules Applied</h2>
+      <table>
+        <tr>
+          <th>Rule</th>
+          <th style="text-align: right;">Count</th>
+        </tr>
+        <% @summary[:rules_applied].each do |rule| %>
+          <tr>
+            <td><span class="rule-name"><%= rule["rule"] %></span></td>
+            <td style="text-align: right;"><strong><%= rule["count"] %></strong></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+
+    <!-- Tool Usage Breakdown -->
+    <div class="section">
+      <h2>Tool Usage Breakdown</h2>
+      <table>
+        <tr>
+          <th>Tool</th>
+          <th style="text-align: right;">Allow</th>
+          <th style="text-align: right;">Deny</th>
+          <th style="text-align: right;">Total</th>
+        </tr>
+        <% tools_summary = @tool_usage.group_by { |t| t["action"] }
+           tools_summary.each do |tool, entries| %>
+          <tr>
+            <td><span class="tool-name"><%= tool %></span></td>
+            <td style="text-align: right;">
+              <span class="allow"><%= entries.find { |e| e["verdict"] == "allow" }&.[]("count") || 0 %></span>
+            </td>
+            <td style="text-align: right;">
+              <span class="deny"><%= entries.find { |e| e["verdict"] == "deny" }&.[]("count") || 0 %></span>
+            </td>
+            <td style="text-align: right;"><strong><%= entries.map { |e| e["count"] }.sum %></strong></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+
+    <!-- Rate Limit Violations -->
+    <% if @rate_violations.any? %>
+      <div class="section">
+        <h2>Rate Limit Violations</h2>
+        <table>
+          <tr>
+            <th>Actor</th>
+            <th>Tool</th>
+            <th style="text-align: right;">Violations</th>
+          </tr>
+          <% @rate_violations.each do |violation| %>
+            <tr>
+              <td><strong><%= violation["actor"] %></strong></td>
+              <td><span class="tool-name"><%= violation["action"] %></span></td>
+              <td style="text-align: right;"><span class="deny"><%= violation["violations"] %></span></td>
+            </tr>
+          <% end %>
+        </table>
+      </div>
+    <% end %>
+
+    <!-- Recent Denied Calls -->
+    <% if @denied_calls.any? %>
+      <div class="section">
+        <h2>Denied Calls</h2>
+        <table>
+          <tr>
+            <th>Time</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Rule</th>
+            <th>Reason</th>
+          </tr>
+          <% @denied_calls.each do |call| %>
+            <tr>
+              <td style="font-size: 12px;"><%= call["at"] %></td>
+              <td><strong><%= call["actor"] %></strong></td>
+              <td><span class="tool-name"><%= call["action"] %></span></td>
+              <td><span class="rule-name"><%= call["rule"] %></span></td>
+              <td><%= call["reason"] %></td>
+            </tr>
+          <% end %>
+        </table>
+      </div>
+    <% end %>
+
+    <!-- Recent Audit Entries -->
+    <div class="section">
+      <h2>Recent Audit Log Entries (Last 50)</h2>
+      <table>
+        <tr>
+          <th>Time</th>
+          <th>Actor</th>
+          <th>Action</th>
+          <th>Verdict</th>
+          <th>Rule</th>
+        </tr>
+        <% @entries.each do |entry| %>
+          <tr>
+            <td style="font-size: 12px;"><%= entry["at"] %></td>
+            <td><strong><%= entry["actor"] %></strong></td>
+            <td><span class="tool-name"><%= entry["action"] %></span></td>
+            <td>
+              <span class="<%= entry["verdict"] %>">
+                <%= entry["verdict"].upcase %>
+              </span>
+            </td>
+            <td><span class="rule-name"><%= entry["rule"] %></span></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+
+  <% end %>
+
+  <hr>
+  <footer style="text-align: center; color: #999; font-size: 12px;">
+    <p>M5 Permissions & Audit Dashboard | Read from <code>.boukensha/events.db</code></p>
+  </footer>
+</body>
+</html>
