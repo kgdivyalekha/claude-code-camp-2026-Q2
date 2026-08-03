@@ -12,7 +12,7 @@ module MudManager
   class Session
     DEFAULT_HOST    = "localhost"
     DEFAULT_PORT    = 4000
-    DEFAULT_TIMEOUT = 10.0
+    DEFAULT_TIMEOUT = 30.0
 
     # Telnet protocol bytes we recognise. We don't negotiate — we just
     # consume and discard IAC sequences so they don't pollute the buffer.
