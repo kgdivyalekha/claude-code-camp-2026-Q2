@@ -168,22 +168,29 @@ class Analytics:
             (session_id,),
         ).fetchone()
 
+        # Get the model to determine correct pricing
+        model_row = self.conn.execute(
+            "SELECT model FROM events WHERE session_id = ? AND phase = 'response' LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        model = model_row[0] if model_row else "claude-haiku-4-5"
+
         if not row or row[5] == 0:
             return CostSummary()
 
         total_cost, input_tokens, output_tokens, cache_read, cache_write, turn_count = row
 
-        # Estimate costs (pricing varies by model, but rough baseline)
-        # Claude 3.5 Sonnet: ~$3/1M input, ~$15/1M output
-        input_cost = (input_tokens / 1_000_000) * 3.0
-        output_cost = (output_tokens / 1_000_000) * 15.0
+        # Use actual model pricing, default to Haiku
+        rates = self._model_pricing_rates(model)
+        input_cost = (input_tokens / 1_000_000) * rates["input"]
+        output_cost = (output_tokens / 1_000_000) * rates["output"]
 
         return CostSummary(
             total_usd=total_cost if total_cost > 0 else input_cost + output_cost,
             input_cost_usd=input_cost,
             output_cost_usd=output_cost,
-            cache_read_cost_usd=(cache_read / 1_000_000) * 0.3 if cache_read > 0 else 0,  # 90% discount
-            cache_write_cost_usd=(cache_write / 1_000_000) * 3.75 if cache_write > 0 else 0,  # 25% premium
+            cache_read_cost_usd=(cache_read / 1_000_000) * rates["cache_read"] if cache_read > 0 else 0,
+            cache_write_cost_usd=(cache_write / 1_000_000) * rates["cache_write"] if cache_write > 0 else 0,
             turns=turn_count,
             cost_per_turn_usd=total_cost / turn_count if turn_count > 0 else 0,
             cost_per_input_mtok=(input_cost / input_tokens * 1_000_000) if input_tokens > 0 else 0,
@@ -384,3 +391,31 @@ class Analytics:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
+
+    def _model_pricing_rates(self, model: str) -> Dict[str, float]:
+        """Get pricing rates for a model.
+
+        Args:
+            model: Model name.
+
+        Returns:
+            Dict with input, output, cache_read, cache_write rates per 1M tokens.
+        """
+        model_lower = (model or "").lower()
+
+        # Pricing per 1M tokens
+        if "fable" in model_lower:
+            return {"input": 10.0, "output": 50.0, "cache_read": 3.0, "cache_write": 12.5}
+        elif "opus-5" in model_lower:
+            return {"input": 15.0, "output": 75.0, "cache_read": 4.5, "cache_write": 18.75}
+        elif "opus" in model_lower:
+            return {"input": 5.0, "output": 25.0, "cache_read": 1.5, "cache_write": 6.25}
+        elif "sonnet-5" in model_lower:
+            return {"input": 3.0, "output": 15.0, "cache_read": 0.9, "cache_write": 3.75}
+        elif "sonnet" in model_lower:
+            return {"input": 3.0, "output": 15.0, "cache_read": 0.9, "cache_write": 3.75}
+        elif "haiku" in model_lower:
+            return {"input": 1.0, "output": 5.0, "cache_read": 0.3, "cache_write": 1.25}
+        else:
+            # Default fallback to Haiku
+            return {"input": 1.0, "output": 5.0, "cache_read": 0.3, "cache_write": 1.25}
