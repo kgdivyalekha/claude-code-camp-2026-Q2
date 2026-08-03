@@ -23,6 +23,8 @@ class Context:
         self.tools: Dict[str, Any] = {}
         self.current_tokens: int = 0
         self.turn_tokens: int = 0
+        self.current_phase: str = "exploring"  # M4: phase-aware tool gating
+        self.turns_since_combat: int = 0  # Track turns to detect phase changes
 
     def register_tool(self, tool: Any) -> None:
         self.tools[tool.name] = tool
@@ -146,6 +148,42 @@ class Context:
 
     def turn_count(self) -> int:
         return len(self.messages)
+
+    # M4: Phase-aware tool gating
+    def set_phase(self, phase: str) -> None:
+        """Set current game phase for tool gating (M4).
+
+        Phases: "exploring", "fighting", "trading", "full"
+        """
+        if phase in ("exploring", "fighting", "trading", "full"):
+            self.current_phase = phase
+
+    def detect_phase_from_result(self, tool_result: str) -> Optional[str]:
+        """Detect phase change from a tool result.
+
+        Returns the new phase if detected, None if no change.
+        """
+        result_lower = tool_result.lower()
+
+        # Combat indicators
+        if any(word in result_lower for word in ["attack", "hit", "damage", "combat", "round", "battle", "enemy"]):
+            if self.current_phase != "fighting":
+                self.turns_since_combat = 0
+                return "fighting"
+            self.turns_since_combat = 0
+
+        # Trading indicators
+        elif any(word in result_lower for word in ["shop", "buy", "sell", "trade", "merchant", "vendor"]):
+            if self.current_phase != "trading":
+                return "trading"
+
+        # Exploration (no combat for N turns)
+        else:
+            self.turns_since_combat += 1
+            if self.turns_since_combat > 3 and self.current_phase != "exploring":
+                return "exploring"
+
+        return None
 
     def __repr__(self) -> str:
         return (

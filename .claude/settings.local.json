@@ -209,7 +209,17 @@
       "Bash(rm -f M1_BASELINE.md)",
       "Bash(rm -f M1_SUMMARY.txt)",
       "Bash(rm -f M2_DASHBOARD.md)",
-      "Bash(rm -f M2_SUMMARY.txt)"
+      "Bash(rm -f M2_SUMMARY.txt)",
+      "Bash(grep -n \"def \" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\src\\\\boukensha\\\\context.py\")",
+      "Bash(python -m pytest week2_capable/test/test_m4_token_impact.py -v)",
+      "Bash(./venv/bin/python -m pytest week2_capable/test/test_m4_token_impact.py -v)",
+      "Bash(python -m pytest test/test_toolgate.py test/test_phase_transitions.py test/test_m4_token_impact.py -v)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl *)",
+      "Bash(ollama list *)",
+      "Bash(netstat -tlnp)",
+      "Bash(netstat -tuln)",
+      "Bash(xargs grep -l \"baseline\\\\|token\\\\|cost\")"
     ]
   }
 }
