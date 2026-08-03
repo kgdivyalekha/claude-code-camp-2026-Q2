@@ -157,8 +157,8 @@ class Analytics:
             """
             SELECT
                 COALESCE(SUM(cost_usd), 0) as total_cost,
-                COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0)), 0) as input_tokens,
-                COALESCE(SUM(output_tokens), 0) as output_tokens,
+                COALESCE(SUM(CASE WHEN cost_usd > 0 THEN input_tokens + COALESCE(cache_read_tokens, 0) ELSE 0 END), 0) as input_tokens,
+                COALESCE(SUM(CASE WHEN cost_usd > 0 THEN output_tokens ELSE 0 END), 0) as output_tokens,
                 COALESCE(SUM(COALESCE(cache_read_tokens, 0)), 0) as cache_read_tokens,
                 COALESCE(SUM(COALESCE(cache_write_tokens, 0)), 0) as cache_write_tokens,
                 COUNT(DISTINCT turn) as turn_count
