@@ -109,8 +109,8 @@ module LogViz
           SELECT
             COALESCE(SUM(cost_usd), 0) as total_cost,
             COUNT(DISTINCT turn) as turn_count,
-            COALESCE(SUM(CASE WHEN cost_usd > 0 THEN input_tokens + COALESCE(cache_read_tokens, 0) ELSE 0 END), 0) as input_tokens,
-            COALESCE(SUM(CASE WHEN cost_usd > 0 THEN output_tokens ELSE 0 END), 0) as output_tokens,
+            COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0)), 0) as input_tokens,
+            COALESCE(SUM(output_tokens), 0) as output_tokens,
             model
           FROM events
           WHERE session_id = ? AND phase = 'response'
@@ -124,17 +124,13 @@ module LogViz
       output_tokens = row["output_tokens"].to_i
       model = row["model"].to_s
 
-      # If we have recorded cost, use it directly; otherwise estimate
-      if total_cost > 0
-        # Actual cost from API
-        actual_total = total_cost
-      else
-        # Fallback: estimate using model pricing
-        rates = model_pricing_rates(model)
-        input_cost = (input_tokens / 1_000_000.0) * rates[:input]
-        output_cost = (output_tokens / 1_000_000.0) * rates[:output]
-        actual_total = input_cost + output_cost
-      end
+      # cost_usd is only populated on the final response event, causing
+      # underestimation when there are multiple iterations. Always estimate
+      # from all tokens to get the true cost of all API calls.
+      rates = model_pricing_rates(model)
+      input_cost = (input_tokens / 1_000_000.0) * rates[:input]
+      output_cost = (output_tokens / 1_000_000.0) * rates[:output]
+      actual_total = input_cost + output_cost
 
       {
         total_usd: actual_total,
