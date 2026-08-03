@@ -124,18 +124,22 @@ module LogViz
       output_tokens = row["output_tokens"].to_i
       model = row["model"].to_s
 
-      # Estimate if cost_usd not provided using current pricing
-      if total_cost.zero? || total_cost.nil?
+      # If we have recorded cost, use it directly; otherwise estimate
+      if total_cost > 0
+        # Actual cost from API
+        actual_total = total_cost
+      else
+        # Fallback: estimate using model pricing
         rates = model_pricing_rates(model)
         input_cost = (input_tokens / 1_000_000.0) * rates[:input]
         output_cost = (output_tokens / 1_000_000.0) * rates[:output]
-        total_cost = input_cost + output_cost
+        actual_total = input_cost + output_cost
       end
 
       {
-        total_usd: total_cost,
+        total_usd: actual_total,
         turns: turn_count,
-        cost_per_turn_usd: turn_count.positive? ? total_cost / turn_count : 0,
+        cost_per_turn_usd: turn_count.positive? ? actual_total / turn_count : 0,
         input_tokens:,
         output_tokens:,
       }

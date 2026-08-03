@@ -185,16 +185,32 @@ class Analytics:
         input_cost = (input_tokens / 1_000_000) * rates["input"]
         output_cost = (output_tokens / 1_000_000) * rates["output"]
 
-        return CostSummary(
-            total_usd=total_cost if total_cost > 0 else input_cost + output_cost,
-            input_cost_usd=input_cost,
-            output_cost_usd=output_cost,
-            cache_read_cost_usd=(cache_read / 1_000_000) * rates["cache_read"] if cache_read > 0 else 0,
-            cache_write_cost_usd=(cache_write / 1_000_000) * rates["cache_write"] if cache_write > 0 else 0,
-            turns=turn_count,
-            cost_per_turn_usd=total_cost / turn_count if turn_count > 0 else 0,
-            cost_per_input_mtok=(input_cost / input_tokens * 1_000_000) if input_tokens > 0 else 0,
-        )
+        # Use recorded cost_usd if available; only use fallback if no cost data at all
+        if total_cost > 0:
+            # Actual cost from API response, use it directly
+            return CostSummary(
+                total_usd=total_cost,
+                input_cost_usd=input_cost,
+                output_cost_usd=output_cost,
+                cache_read_cost_usd=(cache_read / 1_000_000) * rates["cache_read"] if cache_read > 0 else 0,
+                cache_write_cost_usd=(cache_write / 1_000_000) * rates["cache_write"] if cache_write > 0 else 0,
+                turns=turn_count,
+                cost_per_turn_usd=total_cost / turn_count if turn_count > 0 else 0,
+                cost_per_input_mtok=(input_cost / input_tokens * 1_000_000) if input_tokens > 0 else 0,
+            )
+        else:
+            # No recorded cost, estimate from tokens (fallback only)
+            estimated_total = input_cost + output_cost
+            return CostSummary(
+                total_usd=estimated_total,
+                input_cost_usd=input_cost,
+                output_cost_usd=output_cost,
+                cache_read_cost_usd=(cache_read / 1_000_000) * rates["cache_read"] if cache_read > 0 else 0,
+                cache_write_cost_usd=(cache_write / 1_000_000) * rates["cache_write"] if cache_write > 0 else 0,
+                turns=turn_count,
+                cost_per_turn_usd=estimated_total / turn_count if turn_count > 0 else 0,
+                cost_per_input_mtok=(input_cost / input_tokens * 1_000_000) if input_tokens > 0 else 0,
+            )
 
     def schema_overhead(self, session_id: str) -> Dict[str, Any]:
         """Estimate schema (tool definition) token cost.
