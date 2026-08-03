@@ -15,13 +15,13 @@
 | **M1** | ✅ Complete | 1.5d | EventStore + Analytics + Token baseline measurement |
 | **M2** | ✅ Complete | 1d | log_viz `/tokens` dashboard with live visualization |
 | **M3** | ✅ Complete | 1d | Quick wins — parameter requiredness, pair-safe compaction, description trimming |
-| **M4** | ⏳ Planned | 1.5d | ToolGate — phase-driven tool exposure (73% schema reduction) |
+| **M4** | ✅ Complete | 1d | ToolGate — phase-driven tool exposure (73% schema reduction) |
 | **M5** | ⏳ Planned | 1.5d | GuardedRegistry + Permissions + Hooks |
 | **M6** | ⏳ Planned | 2d | WorldDB + identity reconciliation + NavigationTracker |
 | **M7** | ⏳ Planned | 1.5d | Result compression + phase-aware compaction |
 | **M8** | ⏳ Planned | 1d | Prompt caching + combined measurement |
 
-**Total Elapsed**: 4 days (M0–M3 complete)  
+**Total Elapsed**: 5 days (M0–M4 complete)  
 **Total Planned**: ~19.5 days for complete Week 2
 
 ---
@@ -400,6 +400,182 @@ python3 milestone_docs/scripts/verify_m3.py
 - ✅ Fixing forced-required parameters measurably reduces failed tool calls
 - ✅ Pair-safe compaction prevents split tool_use/tool_result pairs
 - ✅ Description trimming reduces schema overhead by ~20-30%
+
+---
+
+# M4: ToolGate — Phase-Driven Tool Exposure ✅ COMPLETE
+
+**Status**: ✅ Complete | **Date**: 2026-07-29  
+**Duration**: 1 day (5 hours implementation + testing)  
+**Key Achievement**: **73% schema reduction while exploring**
+
+## Overview
+
+Tool gating restricts which tools are visible to the model based on game phase. Instead of sending all 26 tool definitions on every API call, expose only what's relevant based on current gameplay context. This is the **biggest single optimization** in the token economy.
+
+**Expected impact**: ~2,000-2,500 schema tokens/call → ~550 tokens/call while exploring
+
+## What M4 Delivered
+
+### 1. ToolGate Class (`src/boukensha/tokens/gate.py`)
+
+**Purpose**: Control which tools are visible based on game phase
+
+**Key capabilities**:
+- `visible(phase)` — Returns set of tool names for this phase
+- `visible_tools_dict(phase, all_tools)` — Filters tool dict by phase
+- `tools_sent(phase)` — Count of visible tools
+- Always-visible floor: `look`, `move`, `check` (agent never stuck)
+- Phase transitions driven by **observed state**, never model requests
+
+**Phases & Reduction**:
+
+| Phase | Categories | Tools | Reduction |
+|-------|-----------|-------|-----------|
+| **Exploring** | perception, movement | 7 | ↓ 73% |
+| **Fighting** | + combat | 10 | ↓ 62% |
+| **Trading** | + inventory, utility | 14 | ↓ 46% |
+| **Full** | all categories | 26 | — |
+
+### 2. Tool Organization (from primitives.json)
+
+All 26 tools organized into 7 categories:
+
+| Category | Count | Tools |
+|----------|-------|-------|
+| **Perception** | 3 | look, examine, check |
+| **Movement** | 4 | move, flee, set_position, track |
+| **Combat** | 3 | attack, skill_strike, consider |
+| **Communication** | 3 | say, tell, channel_say |
+| **Inventory** | 5 | get_item, drop_item, put_item, equip_item, consume_item |
+| **Magic** | 2 | cast_spell, use_magic_item |
+| **Utility** | 6 | shop, practice, save_character, send_raw, poll, mud_status |
+
+### 3. Context Phase Tracking (`src/boukensha/context.py`)
+
+**Additions**:
+- `current_phase` attribute (default: "exploring")
+- `turns_since_combat` counter for phase transitions
+- `set_phase(phase)` — Manually set phase
+- `detect_phase_from_result(tool_result)` — Auto-detect phase from tool output
+
+**Phase Detection Logic**:
+- Combat keywords in tool results → "fighting" phase
+- Shop/merchant keywords → "trading" phase
+- 3+ turns without combat → revert to "exploring" phase
+- Detects from tool output, never from model requests (safe by design)
+
+### 4. PromptBuilder Integration (`src/boukensha/prompt_builder.py`)
+
+**Changes**:
+- `to_tools(phase=None)` — Accepts optional phase parameter
+- Uses `Context.current_phase` if phase not specified
+- Filters via `ToolGate.visible_tools_dict(phase)`
+- Fully backward compatible (defaults to "full" if phase=None)
+
+**Result**: Only visible tools sent to API payload, reducing schema overhead by 73% while exploring
+
+### 5. Test Coverage (test/)
+
+**test_toolgate.py** (12 unit tests):
+- Phase visibility tests (7 test cases)
+- Schema reduction metrics (3 test cases)
+- Tool phase lookup (2 test cases)
+
+**test_phase_transitions.py** (8 phase detection tests):
+- Combat detection (1 test case)
+- Trading detection (1 test case)
+- Exploration persistence (1 test case)
+- Phase transitions (4 test cases)
+- **Total**: ~20 test cases covering all phases and transitions
+
+## How M4 Works
+
+```
+Agent.run()
+       ↓
+Context.current_phase = "exploring" (initial)
+       ↓
+PromptBuilder.to_tools(phase="exploring")
+       ↓
+ToolGate.visible_tools_dict("exploring") filters to 7 tools
+       ↓
+Backend.to_tools(visible_only) → API payload (73% less schema)
+       ↓
+Tool result detected as combat/trading/exploration
+       ↓
+Context.detect_phase_from_result() → updates current_phase
+       ↓
+Next iteration uses new phase ↺
+```
+
+## Key Design Decisions
+
+1. **Phase transitions driven by observed state** — Tool results automatically update phase, never model requests
+2. **Floor tools always visible** — `look`, `move`, `check` never gated (agent never stuck)
+3. **Invalid phase defaults to "full"** — Safe fallback for unknown phases
+4. **Backward compatible** — `to_tools()` works with or without phase parameter
+5. **No changes to agent.py required** — Transparent integration via PromptBuilder
+6. **Permission composition ready** — `Policy.statically_denied()` can be subtracted by ToolGate for future M5 integration
+
+## Implementation Breakdown
+
+- **Phase 1 (ToolGate core)**: 1.5h ✓ — Phase→categories mapping, visibility filtering
+- **Phase 2 (PromptBuilder integration)**: 0.5h ✓ — Phase parameter, backward compat
+- **Phase 3 (Phase tracking)**: 1.5h ✓ — Context state, detection logic
+- **Phase 4 (Tests)**: 1.5h ✓ — 20 test cases, all phases
+- **Total**: ~5 hours (within 1.5d estimate)
+
+## Success Criteria ✅
+
+- ✅ ToolGate class implemented with all 7 categories
+- ✅ Phase detection logic in Context (combat/trading/exploring)
+- ✅ PromptBuilder accepts and uses phase parameter
+- ✅ Floor tools (look, move, check) always visible
+- ✅ All 26 tools available in "full" phase
+- ✅ Phase transitions detected from tool results (never from model)
+- ✅ Comprehensive test coverage (~20 test cases)
+- ✅ Schema reduction metrics verified (73/62/46%)
+- ✅ Ready for agent integration and live testing
+
+## Metrics to Track (Post-Integration)
+
+After agent integration, measure:
+- **tools_sent per phase** — Target: 7 exploring, 10 fighting, 14 trading
+- **Schema overhead %** — Target: 8% exploring, 15% fighting, 25% trading
+- **Phase transitions per turn** — Should be stable, <1 per turn
+- **Total cost vs M1 baseline** — Compare in `/tokens` dashboard
+
+## Code Changes Summary
+
+**Created**:
+- `src/boukensha/tokens/gate.py` — ToolGate class (phase→categories, visibility filtering)
+- `test/test_toolgate.py` — Visibility and schema reduction tests
+- `test/test_phase_transitions.py` — Phase detection and transition tests
+
+**Modified**:
+- `src/boukensha/context.py` — Add phase tracking and detection
+- `src/boukensha/prompt_builder.py` — Integrate ToolGate filtering
+
+## Status
+
+✅ **Ready for**:
+- Agent.run() integration testing
+- Live play testing with real MUD interactions
+- Measurement against M1 baseline in `/tokens` dashboard
+- M5 (GuardedRegistry + Permissions) composition
+
+## Impact on Token Economy
+
+**Single 50-iteration turn while exploring:**
+- Baseline schema cost: 125,000 tokens × $1/1M = **$0.125**
+- M3+M4 schema cost: 27,500 tokens × $1/1M = **$0.0275**
+- **Savings: $0.0975 per turn** (78% reduction)
+
+**Full 10-turn session (mixed phases, average 30% exploring):**
+- Baseline: ~$1.23
+- M3+M4: ~$0.45-0.60
+- **Potential savings: 50-60%** ✓ (exceeds plan target of ≥50%)
 
 ---
 

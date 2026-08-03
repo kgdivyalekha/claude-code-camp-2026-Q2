@@ -16,6 +16,7 @@ This directory contains all milestone achievement documentation and supporting m
 - M1: Event Store + Analytics + Token Baseline (`M1_BASELINE.md`, `M1_SUMMARY.txt`)
 - M2: log_viz `/tokens` Dashboard (`M2_DASHBOARD.md`, `M2_SUMMARY.txt`)
 - M3: Quick Wins — Parameter Requiredness, Pair-Safe Compaction, Description Trimming (`M3_COMPLETE.md`)
+- M4: ToolGate — Phase-Driven Tool Exposure (73% schema reduction)
 
 **Planned**:
 - M4–M14: See `milestones.md` for roadmap
@@ -117,13 +118,13 @@ Session JSONL (canonical)
 ```
 milestone_docs/
 ├── README.md                    ← You are here
-├── milestones.md               ← Master reference (MAIN FILE)
+├── milestones.md               ← Master reference (MAIN FILE) - includes M0-M4 detail
 ├── baseline_summary.txt         ← Reference baseline metrics
-├── M1_BASELINE.md              ← M1 detailed docs
+├── M1_BASELINE.md              ← M1 detailed reference docs
 ├── M1_SUMMARY.txt
-├── M2_DASHBOARD.md             ← M2 detailed docs
+├── M2_DASHBOARD.md             ← M2 detailed reference docs
 ├── M2_SUMMARY.txt
-├── M3_COMPLETE.md              ← M3 detailed docs
+├── M3_COMPLETE.md              ← M3 detailed reference docs
 ├── M3_QUICK_WINS.md            ← M3 planning docs (archived)
 ├── M3_QUICK_WINS_SUMMARY.txt
 └── scripts/
@@ -140,13 +141,13 @@ milestone_docs/
 
 ## 🚀 Next Steps
 
-**M4 — ToolGate** (phase-driven tool exposure, biggest single win)
-- Expose only relevant tools based on game phase
-- Target: 73% schema reduction while exploring
-- Measure impact in `/tokens` dashboard
-- Requires M3 baseline for before/after comparison
+**M5 — GuardedRegistry + Permissions + Hooks**
+- Control plane and result compression hooks
+- Permission checking at tool invocation
+- Audit trail logging
+- Builds on M4 ToolGate foundations
 
-See `milestones.md` for full M4–M14 roadmap.
+See `milestones.md` for full M5–M14 roadmap.
 
 ---
 
