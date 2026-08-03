@@ -109,8 +109,8 @@ module LogViz
           SELECT
             COALESCE(SUM(cost_usd), 0) as total_cost,
             COUNT(DISTINCT turn) as turn_count,
-            COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0)), 0) as input_tokens,
-            COALESCE(SUM(output_tokens), 0) as output_tokens,
+            COALESCE(SUM(CASE WHEN cost_usd > 0 THEN input_tokens + COALESCE(cache_read_tokens, 0) ELSE 0 END), 0) as input_tokens,
+            COALESCE(SUM(CASE WHEN cost_usd > 0 THEN output_tokens ELSE 0 END), 0) as output_tokens,
             model
           FROM events
           WHERE session_id = ? AND phase = 'response'
