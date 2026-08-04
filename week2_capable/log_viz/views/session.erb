@@ -7,7 +7,10 @@
       Started <%= format_time(@session.started_at) %>
     </p>
   </div>
-  <a href="/sessions/<%= @session.id %>/tokens" style="color: var(--accent); text-decoration: none; font-weight: 500;">📊 Token Dashboard</a>
+  <div style="display: flex; gap: 1rem;">
+    <a href="/sessions/<%= @session.id %>/tokens" style="color: var(--accent); text-decoration: none; font-weight: 500;">📊 Token Dashboard</a>
+    <a href="/sessions/<%= @session.id %>/map" style="color: var(--accent); text-decoration: none; font-weight: 500;">🗺️ World Map</a>
+  </div>
 </div>
 
 <% if @session.end_reason %>

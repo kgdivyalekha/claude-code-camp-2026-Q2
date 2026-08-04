@@ -233,7 +233,16 @@
       "Bash(bash list_sessions.sh)",
       "Bash(/c/Users/yaada/AppData/Local/Programs/Ollama/ollama.exe --version)",
       "Bash(grep '\\\\.md$')",
-      "Bash(grep -E '\\\\.\\(md|txt\\)$')"
+      "Bash(grep -E '\\\\.\\(md|txt\\)$')",
+      "Skill(update-config)",
+      "Bash(python -m pytest week2_capable/test/test_world_m6.py -v)",
+      "Bash(./venv/bin/python -m pytest week2_capable/test/test_world_m6.py -v)",
+      "Bash(ruby -c week2_capable/log_viz/lib/log_viz/world_db.rb)",
+      "Bash(ruby -e \"require 'sqlite3'; puts SQLite3::VERSION\")",
+      "Bash(/home/system/.rbenv/versions/3.2.3/bin/ruby *)",
+      "Bash(git log *)",
+      "Bash(rm -f //wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/.boukensha/events.db* //wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/.boukensha/world.db*)",
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/**)"
     ]
   }
 }

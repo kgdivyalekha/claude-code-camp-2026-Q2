@@ -9,5 +9,6 @@ This module provides:
 
 from .analytics import Analytics, CostSummary, TokenBreakdown
 from .event_store import EventStore
+from .navigation import NavigationTracker
 
-__all__ = ["EventStore", "Analytics", "TokenBreakdown", "CostSummary"]
+__all__ = ["EventStore", "Analytics", "TokenBreakdown", "CostSummary", "NavigationTracker"]

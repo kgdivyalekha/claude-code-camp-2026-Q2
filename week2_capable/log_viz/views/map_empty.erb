@@ -1,0 +1,45 @@
+<a href="/" class="back">&larr; All sessions</a>
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+  <div>
+    <h1>World Map</h1>
+    <p class="meta">Session <%= @session.id %></p>
+  </div>
+  <div style="display: flex; gap: 1rem;">
+    <a href="/sessions/<%= @session.id %>" style="color: var(--accent); text-decoration: none; font-weight: 500;">📋 Transcript</a>
+    <a href="/sessions/<%= @session.id %>/tokens" style="color: var(--accent); text-decoration: none; font-weight: 500;">📊 Token Dashboard</a>
+  </div>
+</div>
+
+<div class="banner banner-info">
+  ℹ️ <strong>World database not found.</strong> The world map is created when NavigationTracker parses MUD look/move output during agent execution.
+</div>
+
+<div style="margin: 2rem 0; padding: 2rem; background: var(--bg-secondary); border-radius: 4px;">
+  <h3>About the World Map</h3>
+  <p>
+    The world map (M6) is a persistent database of rooms discovered by the agent during exploration.
+    It tracks:
+  </p>
+  <ul>
+    <li><strong>Room identity:</strong> Signature-based recognition (name + exits + description) to distinguish same-named rooms</li>
+    <li><strong>Connections:</strong> Exit directions and their target rooms, with confidence levels (confirmed/probable/ambiguous)</li>
+    <li><strong>Visits:</strong> How many times each room was visited, by which actor</li>
+    <li><strong>Confidence:</strong> Rooms are probabilistically identified via reciprocity testing (moving back validates the edge)</li>
+  </ul>
+
+  <h3>When is the world map created?</h3>
+  <p>
+    The world map is created during agent execution when:
+  </p>
+  <ol>
+    <li>NavigationTracker is enabled and hooked into tool results</li>
+    <li>The agent executes <code>look</code> or <code>move</code> commands</li>
+    <li>MUD output is parsed and rooms are reconciled into <code>.boukensha/world.db</code></li>
+  </ol>
+
+  <p style="color: var(--text-secondary);">
+    <strong>To see a world map:</strong> Run an agent with M6 (WorldDB) enabled for a session,
+    then view this page again after exploration completes.
+  </p>
+</div>

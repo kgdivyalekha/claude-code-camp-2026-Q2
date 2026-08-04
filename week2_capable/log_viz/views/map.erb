@@ -1,0 +1,198 @@
+<a href="/" class="back">&larr; All sessions</a>
+
+<script>
+  setInterval(() => { location.reload(); }, 3000);
+</script>
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+  <div>
+    <h1>World Map</h1>
+    <p class="meta">Session <%= @session.id %></p>
+  </div>
+  <div style="display: flex; gap: 1rem;">
+    <a href="/sessions/<%= @session.id %>" style="color: var(--accent); text-decoration: none; font-weight: 500;">📋 Transcript</a>
+    <a href="/sessions/<%= @session.id %>/tokens" style="color: var(--accent); text-decoration: none; font-weight: 500;">📊 Token Dashboard</a>
+  </div>
+</div>
+
+<div class="statstrip">
+  <div class="statstrip-head">
+    <span class="statstrip-model">
+      Rooms discovered: <strong><%= @room_count %></strong>
+    </span>
+  </div>
+</div>
+
+<% if @world_available %>
+  <% if @rooms.any? %>
+    <%
+      # Calculate canvas dimensions based on room positions
+      if @positions.any?
+        max_x = @positions.values.map { |p| p[:x] }.max || 0
+        max_y = @positions.values.map { |p| p[:y] }.max || 0
+        canvas_width = (max_x + 1) * 120
+        canvas_height = (max_y + 1) * 120
+      else
+        canvas_width = 800
+        canvas_height = 600
+      end
+    %>
+
+  <div style="margin: 2rem 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary);">
+    <svg class="world-map" width="<%= canvas_width %>" height="<%= canvas_height %>" viewBox="0 0 <%= canvas_width %> <%= canvas_height %>" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <style>
+          .map-exit { stroke: var(--text-secondary); stroke-width: 2; fill: none; }
+          .map-exit-confirmed { stroke: var(--accent); stroke-dasharray: 0; }
+          .map-exit-probable { stroke: var(--text-secondary); stroke-dasharray: 5,5; }
+          .map-exit-blocked { stroke: var(--error); stroke-width: 1; stroke-dasharray: 3,3; }
+
+          .map-room { fill: var(--bg-tertiary); stroke: var(--border); stroke-width: 2; }
+          .map-room:hover { fill: var(--accent); opacity: 0.8; }
+
+          .map-room-confirmed { stroke: var(--accent); stroke-width: 2.5; }
+          .map-room-ambiguous { stroke: var(--warning); stroke-width: 2; stroke-dasharray: 4,4; }
+
+          .map-label { font-size: 12px; font-family: monospace; text-anchor: middle; dominant-baseline: middle; fill: var(--text); }
+          .map-label-confirmed { font-weight: bold; }
+        </style>
+      </defs>
+
+      <!-- Draw exits as lines between rooms -->
+      <% @positions.each do |from_room_id, from_pos| %>
+        <% room = @world.get_room(from_room_id) %>
+        <% if room %>
+          <% room[:exits].each do |direction, to_room_id| %>
+            <% if to_room_id && @positions[to_room_id] %>
+              <% to_pos = @positions[to_room_id] %>
+              <% from_x = from_pos[:x] * 120 + 60 %>
+              <% from_y = from_pos[:y] * 120 + 60 %>
+              <% to_x = to_pos[:x] * 120 + 60 %>
+              <% to_y = to_pos[:y] * 120 + 60 %>
+
+              <% exit_data = room[:exits][direction] %>
+              <% if exit_data.is_a?(Hash) %>
+                <% confidence = exit_data[:confidence] || "probable" %>
+              <% else %>
+                <% confidence = "probable" %>
+              <% end %>
+
+              <line class="map-exit map-exit-<%= confidence %>" x1="<%= from_x %>" y1="<%= from_y %>" x2="<%= to_x %>" y2="<%= to_y %>" />
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <!-- Draw rooms as circles -->
+      <% @positions.each do |room_id, pos| %>
+        <% room = @world.get_room(room_id) %>
+        <% if room %>
+          <% x = pos[:x] * 120 + 60 %>
+          <% y = pos[:y] * 120 + 60 %>
+
+          <circle class="map-room map-room-<%= room[:confidence] %>"
+                  cx="<%= x %>" cy="<%= y %>" r="40"
+                  title="<%= "#{room[:name]} (#{room[:confidence]}) - visited #{room[:visit_count]}x" %>" />
+          <text class="map-label map-label-<%= room[:confidence] %>" x="<%= x %>" y="<%= y - 8 %>"><%= room[:name][0, 8] %></text>
+          <text class="map-label" x="<%= x %>" y="<%= y + 8 %>" style="font-size: 10px;"><%= room[:visit_count] %>x</text>
+        <% end %>
+      <% end %>
+    </svg>
+  </div>
+
+  <div style="margin: 2rem 0; padding: 1rem; background: var(--bg-secondary); border-radius: 4px;">
+    <h3 style="margin-top: 0;">Legend</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div>
+        <strong>Room Confidence:</strong>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li><svg width="16" height="16" viewBox="0 0 100 100" style="display: inline; margin-right: 0.5rem;"><circle cx="50" cy="50" r="40" class="map-room map-room-confirmed" /></svg> Confirmed</li>
+          <li><svg width="16" height="16" viewBox="0 0 100 100" style="display: inline; margin-right: 0.5rem;"><circle cx="50" cy="50" r="40" class="map-room" /></svg> Probable</li>
+          <li><svg width="16" height="16" viewBox="0 0 100 100" style="display: inline; margin-right: 0.5rem;"><circle cx="50" cy="50" r="40" class="map-room map-room-ambiguous" /></svg> Ambiguous</li>
+        </ul>
+      </div>
+      <div>
+        <strong>Exit Status:</strong>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li><svg width="60" height="20" viewBox="0 0 60 20" style="display: inline; margin-right: 0.5rem;"><line class="map-exit map-exit-confirmed" x1="5" y1="10" x2="55" y2="10" /></svg> Confirmed</li>
+          <li><svg width="60" height="20" viewBox="0 0 60 20" style="display: inline; margin-right: 0.5rem;"><line class="map-exit map-exit-probable" x1="5" y1="10" x2="55" y2="10" /></svg> Probable</li>
+          <li><svg width="60" height="20" viewBox="0 0 60 20" style="display: inline; margin-right: 0.5rem;"><line class="map-exit map-exit-blocked" x1="5" y1="10" x2="55" y2="10" /></svg> Blocked</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+      Circle labels show room name (truncated to 8 chars) and visit count.
+      Hover over rooms to see full name and confidence level.
+    </p>
+  </div>
+
+  <div style="margin: 2rem 0;">
+    <h3>Room List</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border);">
+          <th style="text-align: left; padding: 0.5rem;">Room</th>
+          <th style="text-align: center; padding: 0.5rem;">Visits</th>
+          <th style="text-align: center; padding: 0.5rem;">Confidence</th>
+          <th style="text-align: left; padding: 0.5rem;">Discovered By</th>
+          <th style="text-align: left; padding: 0.5rem;">First Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @rooms.each do |room| %>
+          <tr style="border-bottom: 1px solid var(--border-light);">
+            <td style="padding: 0.5rem;"><strong><%= room[:name] %></strong></td>
+            <td style="text-align: center; padding: 0.5rem;"><%= room[:visit_count] %></td>
+            <td style="text-align: center; padding: 0.5rem;">
+              <span style="padding: 0.25rem 0.5rem; border-radius: 3px;
+                           <% if room[:confidence] == "confirmed" %>
+                             background: var(--accent); color: white;
+                           <% elsif room[:confidence] == "ambiguous" %>
+                             background: var(--warning); color: white;
+                           <% else %>
+                             background: var(--border);
+                           <% end %>
+                           ">
+                <%= room[:confidence] %>
+              </span>
+            </td>
+            <td style="padding: 0.5rem;"><%= room[:discovered_by] || "—" %></td>
+            <td style="padding: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+              <% if room[:first_seen] %>
+                <%= room[:first_seen].split("T").first %>
+              <% else %>
+                —
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% else %>
+    <!-- Empty state: rooms table with instructions -->
+    <div style="margin: 2rem 0; padding: 2rem; background: var(--bg-secondary); border-radius: 4px;">
+      <h3 style="margin-top: 0;">🗺️ World Map Ready</h3>
+      <p style="color: var(--text-secondary); margin: 0;">
+        The world map is initialized and ready to track your exploration.
+        <strong>Start exploring in the agent</strong> — as rooms are discovered,
+        they'll appear here automatically.
+      </p>
+
+      <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-tertiary); border-left: 3px solid var(--accent); border-radius: 2px;">
+        <strong>To start exploring:</strong>
+        <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Use the agent to explore the MUD world</li>
+          <li>Execute <code>look</code> to observe rooms</li>
+          <li>Use <code>move</code> commands to navigate</li>
+          <li>The map updates in real-time as you explore</li>
+        </ol>
+      </div>
+
+      <div style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+        💡 <strong>Tip:</strong> Return to this page anytime to see discovered rooms, exits,
+        and visit history as the world map grows.
+      </div>
+    </div>
+  <% end %>
+<% end %>

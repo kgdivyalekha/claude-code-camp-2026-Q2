@@ -1,4 +1,5 @@
 require "sqlite3"
+require "sqlite3/database"
 require "json"
 
 module LogViz

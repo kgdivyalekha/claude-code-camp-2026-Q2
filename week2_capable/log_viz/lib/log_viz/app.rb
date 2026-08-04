@@ -1,12 +1,15 @@
 require "sinatra/base"
 require "time"
 require "sqlite3"
+require "sqlite3/database"
 require "json"
+require "set"
 
 require_relative "session"
 require_relative "ansi"
 require_relative "analytics"
 require_relative "audit_db"  # M5 integration
+require_relative "world_db"  # M6 integration
 
 module LogViz
   class App < Sinatra::Base
@@ -148,6 +151,62 @@ module LogViz
     get "/" do
       @sessions = session_paths.map { |path| Session.load(path) }
       erb :index
+    end
+
+    # Sample data route for M6 testing — must come before generic :id route
+    get "/sessions/20260804T003135Z-9c6c0214/populate-sample-world" do
+      world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+
+      # Delete old empty database
+      File.delete(world_db_path) if File.exist?(world_db_path) && File.size(world_db_path) == 0
+
+      world = WorldDB.new(world_db_path)
+      ensure_world_db_schema(world)
+
+      # Verify schema was created
+      db_size_after_schema = File.size(world_db_path) if File.exist?(world_db_path)
+
+      # Create sample rooms
+      rooms = [
+        { id: "tavern", name: "The Tavern", signature: "A cozy tavern", description: "A warm tavern with a roaring fireplace", summary: "Tavern", confidence: "confirmed", discovered_by: "look" },
+        { id: "forest", name: "Dark Forest", signature: "A dark forest path", description: "A winding path through dense trees", summary: "Forest path", confidence: "probable", discovered_by: "explore" },
+        { id: "cave", name: "Entrance Cave", signature: "A cave entrance", description: "The entrance to a mysterious cave", summary: "Cave", confidence: "probable", discovered_by: "search" },
+        { id: "village", name: "Small Village", signature: "A quaint village", description: "A peaceful village square", summary: "Village", confidence: "confirmed", discovered_by: "wander" },
+        { id: "bridge", name: "Stone Bridge", signature: "An ancient bridge", description: "An old stone bridge over a river", summary: "Bridge", confidence: "confirmed", discovered_by: "traverse" }
+      ]
+
+      save_results = rooms.map { |r| world.save_room(r) }
+
+      # Create exits
+      world.save_exit("tavern", "north", "village", "confirmed")
+      world.save_exit("tavern", "east", "forest", "probable")
+      world.save_exit("tavern", "south", "bridge", "probable")
+      world.save_exit("forest", "west", "tavern", "probable")
+      world.save_exit("forest", "north", "cave", "probable")
+      world.save_exit("cave", "south", "forest", "probable")
+      world.save_exit("village", "south", "tavern", "confirmed")
+      world.save_exit("bridge", "north", "tavern", "probable")
+
+      # Simulate visits
+      5.times { world.visit_room("tavern") }
+      3.times { world.visit_room("forest") }
+      2.times { world.visit_room("cave") }
+      4.times { world.visit_room("village") }
+      1.times { world.visit_room("bridge") }
+
+      world.close
+
+      db_size_final = File.size(world_db_path) if File.exist?(world_db_path)
+
+      content_type :json
+      {
+        status: "populated",
+        db_path: world_db_path,
+        db_size_after_schema: db_size_after_schema,
+        db_size_final: db_size_final,
+        rooms_saved: save_results,
+        redirect_to: "/sessions/20260804T003135Z-9c6c0214/map"
+      }.to_json
     end
 
     get "/sessions/:id" do
@@ -360,6 +419,147 @@ module LogViz
       end
 
       erb :actors
+    end
+
+    # M6 World Map Dashboard — show discovered rooms and connections
+    get "/sessions/:id/map" do
+      begin
+        id = File.basename(params[:id])
+        path = File.join(settings.sessions_dir, "#{id}.jsonl")
+        halt 404, "Session not found: #{id}" unless File.file?(path)
+
+        @session = Session.load(path)
+
+        # Load world.db (auto-create if missing)
+        world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+        @world = WorldDB.new(world_db_path)
+
+        # Ensure world.db schema exists (creates if needed)
+        ensure_world_db_schema(@world)
+
+        @world_available = @world.ready?
+        @rooms = @world.all_rooms
+        @room_count = @world.room_count
+        @positions = @world.layout_rooms if @rooms.any?
+
+        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}"
+
+        erb :map_live
+      rescue => e
+        halt 500, "Error loading world map: #{e.message}\n#{e.backtrace.join("\n")}"
+      end
+    end
+
+    # Ensure world.db schema exists (helper for map route)
+    def ensure_world_db_schema(world)
+      return if world.ready?
+
+      # Create schema if DB doesn't exist
+      db_path = File.expand_path("../.boukensha/world.db", settings.root)
+      conn = SQLite3::Database.new(db_path)
+
+      sql = <<~SQL
+        CREATE TABLE IF NOT EXISTS rooms (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          signature TEXT NOT NULL,
+          description TEXT,
+          summary TEXT,
+          zone_guess TEXT,
+          confidence TEXT NOT NULL DEFAULT 'probable',
+          is_safe INTEGER,
+          first_seen TEXT,
+          last_seen TEXT,
+          visit_count INTEGER DEFAULT 0,
+          discovered_by TEXT,
+          notes TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS exits (
+          room_id TEXT NOT NULL REFERENCES rooms(id),
+          direction TEXT NOT NULL,
+          target_room_id TEXT REFERENCES rooms(id),
+          confidence TEXT NOT NULL DEFAULT 'probable',
+          is_one_way INTEGER DEFAULT 0,
+          blocked_reason TEXT,
+          last_seen TEXT,
+          PRIMARY KEY (room_id, direction)
+        );
+
+        CREATE TABLE IF NOT EXISTS items (
+          id TEXT PRIMARY KEY,
+          room_id TEXT REFERENCES rooms(id),
+          name TEXT,
+          item_type TEXT,
+          properties TEXT,
+          last_seen TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS npcs (
+          id TEXT PRIMARY KEY,
+          room_id TEXT REFERENCES rooms(id),
+          name TEXT,
+          level_guess INTEGER,
+          is_hostile INTEGER,
+          dialogue TEXT,
+          last_seen TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS navigation_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT,
+          actor TEXT,
+          turn INTEGER,
+          from_room TEXT REFERENCES rooms(id),
+          direction TEXT,
+          to_room TEXT REFERENCES rooms(id),
+          success INTEGER,
+          reason TEXT,
+          at TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_rooms_signature ON rooms(signature);
+        CREATE INDEX IF NOT EXISTS idx_rooms_name ON rooms(name);
+        CREATE INDEX IF NOT EXISTS idx_exits_target ON exits(target_room_id);
+        CREATE INDEX IF NOT EXISTS idx_items_room ON items(room_id);
+        CREATE INDEX IF NOT EXISTS idx_npcs_room ON npcs(room_id);
+        CREATE INDEX IF NOT EXISTS idx_nav_log_session ON navigation_log(session_id);
+        CREATE INDEX IF NOT EXISTS idx_nav_log_from_room ON navigation_log(from_room);
+      SQL
+
+      sql.split(';').each do |statement|
+        conn.execute(statement) if statement.strip.length > 0
+      end
+
+      conn.close
+    end
+
+    # Test route to verify M6 integration is loaded
+    get "/test/m6" do
+      content_type :json
+      world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+      world = WorldDB.new(world_db_path)
+
+      begin
+        db_size = File.exist?(world_db_path) ? File.size(world_db_path) : 0
+        {
+          status: "ok",
+          world_db_class: WorldDB.class.name,
+          world_db_path: world_db_path,
+          world_db_exists: File.exist?(world_db_path),
+          world_db_size: db_size,
+          world_ready: world.ready?,
+          room_count: world.room_count,
+          rooms: world.all_rooms,
+          error: nil
+        }.to_json
+      rescue => e
+        {
+          status: "error",
+          error: e.message,
+          backtrace: e.backtrace.first(5)
+        }.to_json
+      end
     end
 
     # M5 Audit API endpoint — live audit trail updates

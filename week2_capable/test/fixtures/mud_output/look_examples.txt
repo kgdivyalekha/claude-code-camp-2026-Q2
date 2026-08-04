@@ -1,0 +1,56 @@
+# Captured look output from tbaMUD — fixtures for M6 testing
+
+## Simple room with exits
+
+Market Square
+You stand in a bustling marketplace with merchants hawking their wares. The smell of
+fresh bread and exotic spices fills the air. Colorful banners flutter above vendor stalls.
+[ Exits: north south east west ]
+
+## Room with NPC and async spam (mob arrival during look)
+
+Temple
+A sacred temple with high vaulted ceilings. Sunlight streams through stained glass windows,
+casting colored light across the marble floor.
+A skeletal warrior arrives from the north.
+[ Exits: north south ]
+
+## Forest room with limited exits
+
+Dark Forest Path
+You walk through a dense forest where sunlight barely penetrates. Ancient oaks tower above,
+their branches intertwined. The ground is carpeted with moss and fallen leaves.
+[ Exits: north south ]
+
+## Room with one-way exit indication
+
+Tower Top
+You stand atop a tall tower overlooking the land. Wind whips around you fiercely.
+Below, the world spreads out in all directions.
+[ Exits: down ]
+
+## Alley with many exits
+
+Alley Intersection
+A crossroads of several alleys. Shops line the streets, and the alley extends in
+multiple directions from here.
+[ Exits: north south east west northeast northwest southeast southwest ]
+
+## Same-named room in different location (tbaMUD variety)
+
+Dark Alley
+You stand in a narrow alley shrouded in shadow. The walls are close, and suspicious
+figures linger in the darkness.
+[ Exits: north east ]
+
+## Longer description (testing truncation)
+
+Palace Grand Hall
+You stand in an immense hall with towering marble columns that reach toward a ceiling
+so high it seems to touch the sky. Intricate mosaics cover the floor depicting scenes
+of ancient battles and glory. A massive throne dominates the chamber, carved from a
+single block of black stone and studded with gems. Tapestries of silk and gold hang
+from the walls, their colors still vivid despite their obvious age. Servants in fine
+livery move quietly about their duties. The air smells of incense and expensive perfume.
+This is clearly the seat of power for the realm.
+[ Exits: north south east west up ]
