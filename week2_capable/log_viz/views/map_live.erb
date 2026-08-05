@@ -7,14 +7,21 @@
   </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
     <button id="theme-toggle" style="
-      padding: 0.4rem 0.8rem;
-      border: 1px solid var(--border);
-      background: var(--bg-secondary);
-      color: var(--text);
-      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      border: 2px solid rgba(255, 107, 107, 0.5);
+      background: rgba(20, 30, 50, 0.7);
+      color: #e0e0e0;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 0.9rem;
-    ">🌙 Dark</button>
+      font-weight: 600;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    "
+    onmouseover="this.style.boxShadow='0 0 12px rgba(255, 107, 107, 0.3)'; this.style.borderColor='rgba(255, 107, 107, 0.8)'"
+    onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.2)'; this.style.borderColor='rgba(255, 107, 107, 0.5)'"
+    >☀️ Light</button>
     <a href="/sessions/<%= @session.id %>" style="color: var(--accent); text-decoration: none; font-weight: 500;">📋 Transcript</a>
     <a href="/sessions/<%= @session.id %>/tokens" style="color: var(--accent); text-decoration: none; font-weight: 500;">📊 Tokens</a>
   </div>
@@ -26,20 +33,21 @@
     <div style="
       position: absolute;
       top: 20px; right: 30px;
-      width: 80px; height: 80px;
-      background: white;
-      border: 2px solid var(--border);
+      width: 90px; height: 90px;
+      background: rgba(20, 30, 50, 0.8);
+      border: 2px solid rgba(255, 107, 107, 0.5);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 0 12px rgba(69, 183, 209, 0.2), inset 0 0 10px rgba(255, 107, 107, 0.1);
+      backdrop-filter: blur(4px);
     ">
-      <div style="text-align: center; font-size: 12px; font-weight: 600; color: var(--accent);">
-        <div>N</div>
-        <div style="letter-spacing: 2px; margin: 4px 0;">W   E</div>
-        <div>S</div>
+      <div style="text-align: center; font-size: 13px; font-weight: 700; color: #FF6B6B; text-shadow: 0 0 6px rgba(255, 107, 107, 0.5);">
+        <div>↑ N</div>
+        <div style="letter-spacing: 3px; margin: 4px 0; font-size: 11px;">← W   E →</div>
+        <div>↓ S</div>
       </div>
     </div>
 
@@ -71,21 +79,33 @@
             <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B" />
           </marker>
           <style>
-            .map-connection { stroke: rgba(100, 100, 100, 0.3); stroke-width: 2; fill: none; }
-            .map-arrow { stroke: #FF6B6B; stroke-width: 2; fill: none; stroke-dasharray: 5,5; }
+            .map-connection {
+              stroke: rgba(150, 150, 200, 0.4);
+              stroke-width: 2;
+              fill: none;
+              filter: drop-shadow(0 0 2px rgba(100, 150, 255, 0.3));
+            }
+            .map-arrow {
+              stroke: #FF6B6B;
+              stroke-width: 2.5;
+              fill: none;
+              stroke-dasharray: 5,5;
+              filter: drop-shadow(0 0 2px rgba(255, 107, 107, 0.4));
+            }
             .map-room-label {
               font-size: 12px;
               font-weight: 500;
               text-anchor: middle;
               dominant-baseline: middle;
               pointer-events: none;
+              filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
             }
             .map-room-rect {
               cursor: pointer;
               transition: all 0.2s;
             }
             .map-room-rect:hover {
-              filter: brightness(1.1);
+              filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 107, 107, 0.3));
             }
           </style>
         </defs>
@@ -183,20 +203,22 @@
     <div id="room-info-panel" style="
       position: absolute;
       bottom: 20px; left: 20px;
-      background: white;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-      min-width: 250px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: rgba(20, 30, 50, 0.9);
+      border: 2px solid rgba(255, 107, 107, 0.6);
+      border-radius: 12px;
+      padding: 1.2rem;
+      min-width: 280px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 107, 107, 0.2);
       display: none;
       z-index: 20;
+      backdrop-filter: blur(8px);
+      color: #e0e0e0;
     ">
-      <h3 id="room-name" style="margin: 0 0 0.5rem 0; color: var(--accent);"></h3>
-      <p id="room-desc" style="margin: 0.5rem 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.85rem;">
-        <div><strong>Visits:</strong> <span id="room-visits"></span></div>
-        <div><strong>Exits:</strong> <span id="room-exits"></span></div>
+      <h3 id="room-name" style="margin: 0 0 0.8rem 0; color: #FF6B6B; font-size: 1.1rem; text-shadow: 0 0 6px rgba(255, 107, 107, 0.3);"></h3>
+      <p id="room-desc" style="margin: 0.5rem 0; font-size: 0.9rem; color: #b0b0b0; max-height: 80px; overflow-y: auto;"></p>
+      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(100, 150, 255, 0.3); font-size: 0.85rem; color: #a8d5e8;">
+        <div><strong style="color: #45B7D1;">Visits:</strong> <span id="room-visits" style="color: #e0e0e0;"></span></div>
+        <div><strong style="color: #45B7D1;">Exits:</strong> <span id="room-exits" style="color: #e0e0e0;"></span></div>
       </div>
     </div>
   </div>
@@ -211,21 +233,31 @@
 <% end %>
 
 <script>
-  // Theme toggle
+  // Theme toggle (dark mode as default)
   const themeToggle = document.getElementById('theme-toggle');
   const svg = document.getElementById('world-map-svg');
-  let isDarkMode = localStorage.getItem('mapTheme') === 'dark';
+  let isDarkMode = localStorage.getItem('mapTheme') !== 'light';  // Default to dark
 
   function applyTheme(dark) {
     isDarkMode = dark;
     localStorage.setItem('mapTheme', dark ? 'dark' : 'light');
 
     if (dark) {
-      svg.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%)';
+      // Dark theme with a subtle circuit-board pattern effect
+      svg.style.background = `
+        radial-gradient(circle at 20% 50%, rgba(255, 107, 107, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(69, 183, 209, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%)
+      `;
       themeToggle.textContent = '☀️ Light';
       document.documentElement.style.setProperty('--map-text-color', '#ffffff');
     } else {
-      svg.style.background = 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)';
+      // Light theme
+      svg.style.background = `
+        radial-gradient(circle at 20% 50%, rgba(255, 107, 107, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(69, 183, 209, 0.08) 0%, transparent 50%),
+        linear-gradient(135deg, #f8fafc 0%, #e8ecf1 100%)
+      `;
       themeToggle.textContent = '🌙 Dark';
       document.documentElement.style.setProperty('--map-text-color', '#333333');
     }
@@ -235,7 +267,7 @@
     applyTheme(!isDarkMode);
   });
 
-  // Initialize theme
+  // Initialize theme (default to dark)
   applyTheme(isDarkMode);
 
   // Find and highlight player's current room from navigation_log
