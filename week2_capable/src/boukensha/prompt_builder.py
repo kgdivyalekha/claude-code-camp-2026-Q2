@@ -44,7 +44,13 @@ class PromptBuilder:
             phase = self.context.current_phase
 
         # M4: Filter tools by phase
-        visible_tools = gate().visible_tools_dict(phase, self.context.tools)
+        # Note: gate() expects base tool names (e.g., "look") but tools are registered
+        # with prefixes (e.g., "tbamud__look"). Strip prefix before filtering.
+        visible_names = gate().visible(phase)
+        visible_tools = {
+            name: tool for name, tool in self.context.tools.items()
+            if name.split("__", 1)[-1] in visible_names
+        }
 
         # M5: Prune tools that are statically denied by policy
         if actor is not None and policy is not None:
