@@ -635,48 +635,68 @@ module LogViz
 
     # Merge duplicate rooms (consolidate same-named rooms)
     post "/sessions/:id/map/merge-duplicates" do
-      id = File.basename(params[:id])
-      world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+      begin
+        id = File.basename(params[:id])
+        world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
 
-      halt 404, "Database not found" unless File.exist?(world_db_path)
+        unless File.exist?(world_db_path)
+          content_type :json
+          return { error: "Database not found", merged: 0 }.to_json
+        end
 
-      conn = SQLite3::Database.new(world_db_path)
-      conn.results_as_hash = true
+        conn = SQLite3::Database.new(world_db_path)
+        conn.results_as_hash = true
+        conn.execute("PRAGMA busy_timeout = 5000")
 
-      merged_count = 0
+        merged_count = 0
 
-      # Find all duplicate groups
-      duplicates = conn.execute(<<~SQL)
-        SELECT name, GROUP_CONCAT(id, ',') as ids
-        FROM rooms
-        GROUP BY name
-        HAVING COUNT(*) > 1
-      SQL
+        # Find all duplicate groups
+        duplicates = conn.execute(<<~SQL)
+          SELECT name, GROUP_CONCAT(id, ',') as ids
+          FROM rooms
+          GROUP BY name
+          HAVING COUNT(*) > 1
+        SQL
 
-      duplicates.each do |group|
-        room_ids = group['ids'].split(',')
-        if room_ids.length > 1
-          # Keep first ID, merge all others into it
-          primary_id = room_ids[0]
-          room_ids[1..-1].each do |secondary_id|
-            # Redirect all exits pointing to secondary to primary
-            conn.execute(
-              "UPDATE exits SET target_room_id = ? WHERE target_room_id = ?",
-              [primary_id, secondary_id]
-            )
-            # Delete the secondary room
-            conn.execute("DELETE FROM rooms WHERE id = ?", [secondary_id])
-            merged_count += 1
+        duplicates.each do |group|
+          ids_str = group["ids"].to_s
+          next if ids_str.empty?
+
+          room_ids = ids_str.split(',').map(&:strip)
+          if room_ids.length > 1
+            # Keep first ID, merge all others into it
+            primary_id = room_ids[0]
+            room_ids[1..-1].each do |secondary_id|
+              # Redirect all exits pointing to secondary to primary
+              conn.execute(
+                "UPDATE exits SET target_room_id = ? WHERE target_room_id = ?",
+                [primary_id, secondary_id]
+              )
+              # Delete the secondary room
+              conn.execute("DELETE FROM rooms WHERE id = ?", [secondary_id])
+              merged_count += 1
+            end
           end
         end
+
+        conn.close
+
+        $stderr.puts "[MAP] Merged #{merged_count} duplicate room entries"
+
+        content_type :json
+        { merged: merged_count, message: "Merged #{merged_count} duplicate rooms", success: true }.to_json
+
+      rescue => e
+        $stderr.puts "[MAP ERROR] Merge failed: #{e.class} - #{e.message}"
+        $stderr.puts e.backtrace.first(5).join("\n")
+
+        content_type :json
+        {
+          error: e.message,
+          merged: 0,
+          success: false
+        }.to_json
       end
-
-      conn.close
-
-      $stderr.puts "[MAP] Merged #{merged_count} duplicate room entries"
-
-      content_type :json
-      { merged: merged_count, message: "Merged #{merged_count} duplicate rooms" }.to_json
     end
 
     # Test route to verify M6 integration is loaded
