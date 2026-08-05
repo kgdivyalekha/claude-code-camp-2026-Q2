@@ -50,10 +50,22 @@
       background: var(--bg-secondary);
       overflow: auto;
       width: 100%;
-      aspect-ratio: 16/9;
+      height: 600px;
       position: relative;
     " id="map-container">
-      <svg id="world-map-svg" width="1200" height="675" style="display: block; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);" data-light-bg="linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)" data-dark-bg="linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%)">
+      <%
+        # Calculate SVG dimensions based on room positions
+        if @positions.any?
+          max_x = @positions.values.map { |p| p[:x] }.max || 0
+          max_y = @positions.values.map { |p| p[:y] }.max || 0
+          svg_width = (max_x + 2) * 120 + 120  # Extra padding
+          svg_height = (max_y + 2) * 120 + 120
+        else
+          svg_width = 1200
+          svg_height = 675
+        end
+      %>
+      <svg id="world-map-svg" width="<%= svg_width %>" height="<%= svg_height %>" style="display: block; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); min-width: 100%; min-height: 100%;" data-light-bg="linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)" data-dark-bg="linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%)">
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
             <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B" />
