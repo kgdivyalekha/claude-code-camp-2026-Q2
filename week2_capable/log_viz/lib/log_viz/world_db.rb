@@ -226,7 +226,9 @@ module LogViz
         room = get_room(room_id)
         next unless room
 
-        room[:exits].each do |direction, target_id|
+        room[:exits].each do |direction, exit_info|
+          # exit_info is {target: id, confidence: ..., blocked: ...}
+          target_id = exit_info.is_a?(Hash) ? exit_info[:target] : exit_info
           next if target_id.nil? || visited.include?(target_id)
 
           dx, dy = directions[direction.downcase] || [0, 0]
