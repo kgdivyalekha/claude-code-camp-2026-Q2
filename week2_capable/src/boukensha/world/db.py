@@ -219,11 +219,14 @@ class WorldDB:
         return row[0] if row else None
 
     def confirm_exit(self, from_room_id: str, direction: str, to_room_id: str) -> None:
-        """Mark an exit as confirmed (moved successfully)."""
+        """Mark an exit as confirmed (moved successfully).
+
+        Updates both target_room_id (in case it was NULL) and confidence.
+        """
         self.conn.execute(
-            "UPDATE exits SET confidence = 'confirmed' "
-            "WHERE room_id = ? AND direction = ? AND target_room_id = ?",
-            (from_room_id, direction, to_room_id),
+            "UPDATE exits SET target_room_id = ?, confidence = 'confirmed' "
+            "WHERE room_id = ? AND direction = ?",
+            (to_room_id, from_room_id, direction),
         )
         self.conn.commit()
 
