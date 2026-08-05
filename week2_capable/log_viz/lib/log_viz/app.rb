@@ -584,6 +584,59 @@ module LogViz
       conn.close
     end
 
+    # Clean ANSI codes from all room names in database
+    get "/sessions/:id/map/clean-ansi" do
+      begin
+        world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+
+        unless File.exist?(world_db_path)
+          content_type :json
+          return { error: "Database not found", cleaned: 0 }.to_json
+        end
+
+        conn = SQLite3::Database.new(world_db_path)
+        conn.execute("PRAGMA busy_timeout = 5000")
+
+        # Regex pattern for ANSI codes
+        ansi_pattern = /\x1b\[[0-9;]*m|\[[0-9;]*m/
+
+        # Get all rooms
+        all_rows = conn.execute("SELECT id, name, description, summary FROM rooms")
+
+        cleaned_count = 0
+
+        all_rows.each do |row|
+          id, name, desc, summary = row
+
+          # Clean each field
+          clean_name = name.to_s.gsub(ansi_pattern, "").strip if name
+          clean_desc = desc.to_s.gsub(ansi_pattern, "").strip if desc
+          clean_summary = summary.to_s.gsub(ansi_pattern, "").strip if summary
+
+          # Update if any field changed
+          if (clean_name && clean_name != name) || (clean_desc && clean_desc != desc) || (clean_summary && clean_summary != summary)
+            conn.execute(
+              "UPDATE rooms SET name = ?, description = ?, summary = ? WHERE id = ?",
+              [clean_name, clean_desc, clean_summary, id]
+            )
+            cleaned_count += 1
+          end
+        end
+
+        conn.close
+
+        $stderr.puts "[MAP] Cleaned ANSI codes from #{cleaned_count} rooms"
+
+        content_type :json
+        { cleaned: cleaned_count, message: "Cleaned ANSI codes from #{cleaned_count} rooms", success: true }.to_json
+
+      rescue => e
+        $stderr.puts "[MAP ERROR] Clean ANSI failed: #{e.message}"
+        content_type :json
+        { error: e.message, cleaned: 0, success: false }.to_json
+      end
+    end
+
     # Reset world.db for a session (clear old data)
     get "/sessions/:id/map/reset" do
       id = File.basename(params[:id])

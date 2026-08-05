@@ -10,28 +10,6 @@
       <input type="checkbox" id="auto-refresh" checked style="cursor: pointer; width: 16px; height: 16px;">
       🔄 Auto-refresh
     </label>
-    <button id="merge-button" style="
-      padding: 0.5rem 0.8rem;
-      border: 1px solid rgba(69, 183, 209, 0.5);
-      background: rgba(69, 183, 209, 0.2);
-      color: #45B7D1;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    " title="Merge duplicate rooms with same name"
-    >🔗 Merge Duplicates</button>
-    <button id="reset-button" style="
-      padding: 0.5rem 0.8rem;
-      border: 1px solid rgba(255, 107, 107, 0.5);
-      background: rgba(255, 107, 107, 0.2);
-      color: #FF6B6B;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    " title="Clear map data and start fresh"
-    >🗑️ Reset Map</button>
     <button id="theme-toggle" style="
       padding: 0.5rem 1rem;
       border: 2px solid rgba(255, 107, 107, 0.5);
@@ -516,51 +494,18 @@
     startAutoRefresh();
   }
 
-  // Merge duplicates button handler
-  const mergeButton = document.getElementById('merge-button');
-  if (mergeButton) {
-    mergeButton.addEventListener('click', () => {
-      if (confirm('🔗 This will merge duplicate rooms with the same name. Continue?')) {
-        mergeButton.disabled = true;
-        mergeButton.textContent = '🔗 Merging...';
-
-        fetch('/sessions/<%= @session.id %>/map/merge-duplicates', { method: 'POST' })
-          .then(async r => {
-            const text = await r.text();
-            try {
-              return JSON.parse(text);
-            } catch (e) {
-              console.error('Response:', text);
-              throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
-            }
-          })
-          .then(data => {
-            if (data.error) {
-              alert(`❌ Error: ${data.error}`);
-            } else {
-              alert(`✓ Merged ${data.merged} duplicate rooms. Refreshing map...`);
-              location.reload();
-            }
-          })
-          .catch(err => {
-            console.error('Merge error:', err);
-            alert(`❌ Error: ${err.message}`);
-          })
-          .finally(() => {
-            mergeButton.disabled = false;
-            mergeButton.textContent = '🔗 Merge Duplicates';
-          });
-      }
-    });
-  }
-
-  // Reset button handler
-  const resetButton = document.getElementById('reset-button');
-  if (resetButton) {
-    resetButton.addEventListener('click', () => {
-      if (confirm('⚠️ This will clear all map data. Continue?')) {
-        window.location.href = '/sessions/<%= @session.id %>/map/reset';
-      }
-    });
-  }
+  // Auto-clean ANSI codes from room names on page load
+  window.addEventListener('load', () => {
+    fetch('/sessions/<%= @session.id %>/map/clean-ansi')
+      .then(r => r.json())
+      .then(data => {
+        if (data.cleaned > 0) {
+          console.log(`✓ Cleaned ANSI codes from ${data.cleaned} rooms - refreshing map`);
+          setTimeout(() => location.reload(), 500);
+        }
+      })
+      .catch(err => {
+        // Already clean or other issue - continue
+      });
+  }, { once: true });
 </script>
