@@ -153,7 +153,9 @@ class NavigationTracker:
         if not exits_found:
             raise ValueError("No exits line found in look output")
 
-        description = "\n".join(description_lines[:20])  # Limit to first 20 lines
+        # Strip ANSI codes from description lines
+        clean_lines = [NavigationTracker._strip_ansi(line) for line in description_lines]
+        description = "\n".join(clean_lines[:20])  # Limit to first 20 lines
         if not description:
             raise ValueError("No description text found")
 
