@@ -108,7 +108,7 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
 
     try:
         # Create actor for this session
-        actor = Actor(session_id, session_id, Role.AGENT, session_id)
+        actor = Actor(session_id, session_id, Role.ADMIN, session_id)
 
         # Permissive default policy: allow all tools
         policy = AllowList(["*__*"])
@@ -150,9 +150,12 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
 
                 def _navigation_hook(actor, name, args, result):
                     """Adapter to let NavigationTracker observe tool results."""
-                    if name == "look":
+                    # Strip MCP prefix (e.g., "tbamud__look" -> "look")
+                    base_name = name.split("__", 1)[-1] if "__" in name else name
+
+                    if base_name == "look":
                         nav_tracker.on_look_result(result, actor=actor.id if actor else None)
-                    elif name == "move":
+                    elif base_name == "move":
                         # move args should have direction; current room should be cached
                         direction = args.get("direction", "unknown")
                         current = nav_tracker.get_current_room()
