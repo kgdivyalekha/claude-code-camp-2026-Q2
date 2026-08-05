@@ -22,7 +22,11 @@ def load_events(db, file_path)
     at = event["at"]
     iteration = event["iteration"]
     tool = event["name"] || event["tool"]
-    ok = event["ok"]
+    ok = case event["ok"]
+         when true then 1
+         when false then 0
+         else event["ok"]
+         end
     input_tokens = event["input_tokens"]
     output_tokens = event["output_tokens"]
     cache_read_tokens = event["cache_read_input_tokens"]

@@ -306,18 +306,27 @@ module LogViz
       @ready = true
       @token_breakdown = @analytics.token_breakdown(id)
 
-      # Use database data if available, otherwise fall back to session file
+      # Use database data if complete, otherwise use session file (source of truth)
       db_cost = @analytics.cost_summary(id)
-      if db_cost[:turns].to_i > 0
+      session_input = @session.total_input_tokens
+      session_output = @session.total_output_tokens
+
+      # Use DB data only if token counts match closely (within 10%)
+      # If DB tokens are much lower, the database is incomplete and we should use session file
+      db_has_complete_data = db_cost[:turns].to_i > 0 &&
+        (db_cost[:input_tokens].to_i > 0 && session_input > 0 &&
+         (db_cost[:input_tokens].to_f / session_input) > 0.9)
+
+      if db_has_complete_data
         @cost_summary = db_cost
       else
-        # Fall back to session file calculation for live sessions with no DB data yet
+        # Use session file as source of truth for cost calculation
         @cost_summary = {
           total_usd: @session.estimated_cost || 0.0,
           turns: @session.turn_count_real,
           cost_per_turn_usd: @session.estimated_cost && @session.turn_count_real > 0 ? @session.estimated_cost / @session.turn_count_real : 0.0,
-          input_tokens: @session.total_input_tokens,
-          output_tokens: @session.total_output_tokens
+          input_tokens: session_input,
+          output_tokens: session_output
         }
       end
 
@@ -327,6 +336,7 @@ module LogViz
       @iterations_per_turn = @analytics.iterations_per_turn(id)
       @context_pressure = @analytics.context_pressure(id)
       @tool_usage = @analytics.tool_usage(id)
+      @compression_metrics = @analytics.compression_metrics(id, settings.sessions_dir)
 
       erb :tokens
     end

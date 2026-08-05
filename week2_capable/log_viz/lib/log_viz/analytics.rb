@@ -108,10 +108,13 @@ module LogViz
       row = db.execute(
         <<~SQL,
           SELECT
-            COALESCE(SUM(cost_usd), 0) as total_cost,
+            COALESCE(SUM(cost_usd), 0) as total_cost_from_db,
             COUNT(DISTINCT turn) as turn_count,
-            COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0)), 0) as input_tokens,
+            COUNT(*) as response_count,
+            COALESCE(SUM(input_tokens), 0) as input_tokens,
             COALESCE(SUM(output_tokens), 0) as output_tokens,
+            COALESCE(SUM(COALESCE(cache_read_tokens, 0)), 0) as cache_read_tokens,
+            COALESCE(SUM(COALESCE(cache_write_tokens, 0)), 0) as cache_write_tokens,
             model
           FROM events
           WHERE session_id = ? AND phase = 'response'
@@ -119,19 +122,30 @@ module LogViz
         [session_id]
       ).first || {}
 
-      total_cost = row["total_cost"].to_f
+      total_cost_from_db = row["total_cost_from_db"].to_f
       turn_count = row["turn_count"].to_i
+      response_count = row["response_count"].to_i
       input_tokens = row["input_tokens"].to_i
       output_tokens = row["output_tokens"].to_i
+      cache_read_tokens = row["cache_read_tokens"].to_i
+      cache_write_tokens = row["cache_write_tokens"].to_i
       model = row["model"].to_s
 
-      # cost_usd is only populated on the final response event, causing
-      # underestimation when there are multiple iterations. Always estimate
-      # from all tokens to get the true cost of all API calls.
+      # If cost_usd is populated for all response events, use it directly
+      # Otherwise estimate from tokens, properly accounting for cache rates
       rates = model_pricing_rates(model)
-      input_cost = (input_tokens / 1_000_000.0) * rates[:input]
-      output_cost = (output_tokens / 1_000_000.0) * rates[:output]
-      actual_total = input_cost + output_cost
+
+      if total_cost_from_db > 0 && (total_cost_from_db / response_count.to_f) > 0.00001
+        # API populated cost for all events, use it
+        actual_total = total_cost_from_db
+      else
+        # Recalculate from tokens with proper cache rates
+        input_cost = (input_tokens / 1_000_000.0) * rates[:input]
+        output_cost = (output_tokens / 1_000_000.0) * rates[:output]
+        cache_read_cost = (cache_read_tokens / 1_000_000.0) * rates[:input] * 0.1
+        cache_write_cost = (cache_write_tokens / 1_000_000.0) * rates[:input] * 1.25
+        actual_total = input_cost + output_cost + cache_read_cost + cache_write_cost
+      end
 
       {
         total_usd: actual_total,
@@ -151,7 +165,7 @@ module LogViz
           SELECT
             COUNT(*) as response_count,
             COALESCE(AVG(tools_sent), 0) as avg_tools_sent,
-            COALESCE(SUM(input_tokens + COALESCE(cache_read_tokens, 0) + COALESCE(cache_write_tokens, 0)), 0) as total_input
+            COALESCE(SUM(input_tokens), 0) as total_input
           FROM events
           WHERE session_id = ? AND phase = 'response'
         SQL
@@ -261,6 +275,69 @@ module LogViz
         input = row["input_tokens"].to_i
         row.merge("percent_of_window" => (input.to_f / context_window * 100).round(1))
       end
+    end
+
+    # M7 Compression metrics: repeat-visit room compression, banner stripping
+    # Reads tokens.compressed events from the JSONL session file
+    # Returns empty hash if no data available (graceful degradation)
+    def compression_metrics(session_id, sessions_dir = ".boukensha/sessions")
+      session_file = File.join(sessions_dir, "#{session_id}.jsonl")
+
+      # Return empty hash if session file doesn't exist
+      unless File.exist?(session_file)
+        return {
+          compressions: [],
+          total_compressions: 0,
+          total_tokens_saved: 0,
+          total_before_tokens: 0,
+          total_after_tokens: 0,
+          average_compression_ratio: 0,
+          average_savings_per_compression: 0,
+        }
+      end
+
+      compressions = []
+      total_saved = 0
+      total_before = 0
+      total_after = 0
+
+      begin
+        File.foreach(session_file) do |line|
+          event = JSON.parse(line)
+          next unless event["phase"] == "tokens.compressed"
+
+          before = event["before_tokens"].to_i
+          after = event["after_tokens"].to_i
+          saved = event["saved"].to_i
+
+          compressions << {
+            tool: event["tool"],
+            before_tokens: before,
+            after_tokens: after,
+            saved_tokens: saved,
+            room_id: event["room_id"],
+            visit_count: event["visit_count"],
+            compression_ratio: before > 0 ? ((saved.to_f / before) * 100).round(1) : 0,
+          }
+
+          total_saved += saved
+          total_before += before
+          total_after += after
+        end
+      rescue StandardError => e
+        # Log error but don't crash; return partial results
+        warn("Error reading compression metrics: #{e.message}")
+      end
+
+      {
+        compressions: compressions,
+        total_compressions: compressions.length,
+        total_tokens_saved: total_saved,
+        total_before_tokens: total_before,
+        total_after_tokens: total_after,
+        average_compression_ratio: total_before > 0 ? ((total_saved.to_f / total_before) * 100).round(1) : 0,
+        average_savings_per_compression: compressions.length > 0 ? (total_saved / compressions.length).round : 0,
+      }
     end
 
     # All sessions with basic metrics
