@@ -1,0 +1,156 @@
+# Boukensha Configuration - Week 2 Capable
+# Token Economy, Observability, World Memory, Permissions, Hooks, Multi-Character Control
+
+# ==============================================================================
+# TASKS
+# ==============================================================================
+tasks:
+  player:
+    provider: anthropic
+    model: claude-opus-5
+    # model: claude-haiku-4-5  # Use for faster testing
+
+# ==============================================================================
+# TOKEN ECONOMY (M3-M9)
+# ==============================================================================
+tokens:
+  # M4: Tool Gating - expose only tools needed for current phase
+  gate_tools: true
+
+  # Phase-based tool exposure
+  phases:
+    exploring: [perception, movement]
+    fighting: [perception, movement, combat]
+    trading: [perception, inventory, utility]
+
+  # Tools always visible (foundation to prevent deadlock)
+  always_visible:
+    - "*__look"
+    - "*__move"
+    - "*__check"
+
+  # M3: Trim verbose tool descriptions to reduce schema tokens
+  trim_descriptions_to: 200  # chars; first sentence always kept
+
+  # M7/M9: Compress repeat room visits
+  compress_repeat_rooms: true
+
+  # M8: PROMPT CACHING - 90% discount on cached input tokens
+  prompt_cache: true
+
+  # M3: Context compaction strategy
+  compaction:
+    strategy: phase_aware          # stale_results → summarize → drop_pairs
+    stale_result_age: 8            # exchanges before eviction
+    compaction_threshold: 0.85     # trigger at 85% of context window
+
+# ==============================================================================
+# OBSERVABILITY (M1-M2, M4-M9)
+# ==============================================================================
+observability:
+  # Live event capture to SQLite
+  event_store:
+    db_path: .boukensha/events.db
+    rebuild_from_jsonl: true
+
+  # World map persistence
+  world_db:
+    db_path: .boukensha/world.db
+    backup_at_session_start: true
+
+# ==============================================================================
+# WORLD MEMORY (M6)
+# ==============================================================================
+world:
+  # Room identity based on signature (name + exits + description)
+  # Not name-keyed to handle tbaMUD name reuse
+  identity:
+    use_signature: true
+
+  # Pathfinding and frontier queries (M9)
+  pathfinding:
+    enable: true
+    frontier_queries: true
+    nearest_unexplored_search: true
+
+# ==============================================================================
+# PERMISSIONS & AUDIT (M5)
+# ==============================================================================
+permissions:
+  default: allow
+
+  rules:
+    # Exploration phase tools only
+    - allow: ["*__look", "*__examine", "*__check", "*__move"]
+
+    # Restrict irreversible commands
+    - deny: "*__send_raw"
+      when:
+        command: "^\\s*(quit|delete|shutdown|purge)"
+      reason: "irreversible or out-of-character"
+
+  rate_limits:
+    per_turn:
+      "*__look": 5      # prevent look-spam loops
+    per_session:
+      "*__cast_spell": 50
+
+# ==============================================================================
+# HOOKS (M5, M7-M9)
+# ==============================================================================
+hooks:
+  # M7: Compression hooks for token savings
+  compress_repeat_rooms:
+    enabled: true
+    priority: 90
+
+  strip_banners:
+    enabled: true
+    priority: 85
+
+  # M9: Frontier query integration (included in compression)
+  frontier_hints:
+    enabled: true
+    include_in_summaries: true
+
+# ==============================================================================
+# MULTI-CHARACTER (M11)
+# ==============================================================================
+mcp_servers:
+  # Single character for testing; add more with different prefixes for multi-char
+  mud:
+    command: mud-manager
+    args: [--mcp]
+    prefix: null  # unnamed tools, or set to character name for multi-char
+    env:
+      MUD_NAME: "${MUD_NAME:Wanderer}"
+      MUD_PASSWORD: "${MUD_PASSWORD:}"
+
+# ==============================================================================
+# AGENT LIMITS
+# ==============================================================================
+agent:
+  max_iterations: 25      # per turn
+  max_output_tokens: 1024  # per response
+  max_turn_tokens: 50000   # per turn budget
+
+# ==============================================================================
+# CONTEXT WINDOW (Model-dependent)
+# ==============================================================================
+context:
+  # Context window size for the chosen model
+  # Claude 3 Opus: 200,000 tokens
+  # Claude 3 Sonnet: 200,000 tokens
+  # Claude 3 Haiku: 200,000 tokens
+  context_window: 200000
+
+  # Compaction fires at this utilization percentage
+  compaction_threshold: 0.85  # 85% = 170,000 tokens
+
+# ==============================================================================
+# LOGGING & DEBUG
+# ==============================================================================
+logging:
+  level: info  # debug, info, warn, error
+  # Events written to .boukensha/sessions/:session_id.jsonl
+  # Live metrics available at log_viz /sessions/:id/metrics

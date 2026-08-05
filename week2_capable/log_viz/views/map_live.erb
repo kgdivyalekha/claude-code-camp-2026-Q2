@@ -345,6 +345,13 @@
   const currentRoomId = <%= @current_room_id.to_json %>;
   const positions = <%= @positions.to_json %>;
 
+  console.log('Map data:', {
+    roomsCount: rooms ? rooms.length : 0,
+    currentRoomId: currentRoomId,
+    positionsCount: positions ? Object.keys(positions).length : 0,
+    firstRoom: rooms && rooms.length > 0 ? rooms[0] : null,
+  });
+
   function highlightPlayerPosition() {
     const svg = document.getElementById('world-map-svg');
     if (!rooms || rooms.length === 0 || !svg) return;
@@ -362,17 +369,22 @@
       currentRoom = rooms[0];
     }
 
+    console.log('Current room:', currentRoom);
+
     if (currentRoom && currentRoom.id) {
       document.getElementById('player-room').textContent = '📍 at ' + currentRoom.name;
 
       // Draw special arrows FROM player's current location
       if (currentRoom.exits && positions[currentRoom.id]) {
+        console.log('Drawing arrows from', currentRoom.name, 'exits:', currentRoom.exits);
         const playerPos = positions[currentRoom.id];
         const playerX = playerPos.x * 120 + 60;
         const playerY = playerPos.y * 120 + 60;
 
         Object.entries(currentRoom.exits).forEach(([direction, targetId]) => {
+          console.log('Processing exit:', direction, '=>', targetId);
           if (targetId && targetId.trim() !== '' && positions[targetId]) {
+            console.log('Drawing arrow to', targetId);
             const targetPos = positions[targetId];
             const targetX = targetPos.x * 120 + 60;
             const targetY = targetPos.y * 120 + 60;
@@ -391,6 +403,7 @@
             arrow.setAttribute('class', 'player-arrow');
             arrow.setAttribute('filter', 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))');
             svg.insertBefore(arrow, svg.children[1]);
+            console.log('Added arrow from', [playerX, playerY], 'to', [targetX, targetY]);
           }
         });
       }
