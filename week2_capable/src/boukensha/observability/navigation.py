@@ -101,6 +101,16 @@ class NavigationTracker:
         return self._current_room_id
 
     @staticmethod
+    def _strip_ansi(text: str) -> str:
+        """Remove ANSI escape codes from text.
+
+        Handles color codes like \x1b[0;33m, [0m, etc.
+        """
+        # Pattern matches ANSI escape sequences: ESC [ ... m
+        ansi_pattern = re.compile(r'\x1b\[[0-9;]*m|\[[0-9;]*m')
+        return ansi_pattern.sub('', text)
+
+    @staticmethod
     def _parse_look(text: str) -> tuple[str, List[str], str]:
         """Parse a look result into (name, exits, description).
 
@@ -117,8 +127,8 @@ class NavigationTracker:
         if not lines:
             raise ValueError("Empty look output")
 
-        # First line is usually the room name
-        name = lines[0].strip()
+        # First line is usually the room name (strip ANSI codes)
+        name = NavigationTracker._strip_ansi(lines[0].strip())
 
         # Find and parse the exits line
         exits: List[str] = []
