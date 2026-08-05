@@ -595,32 +595,57 @@ module LogViz
         end
 
         conn = SQLite3::Database.new(world_db_path)
+        conn.results_as_hash = true
         conn.execute("PRAGMA busy_timeout = 5000")
 
-        # Regex pattern for ANSI codes
-        ansi_pattern = /\x1b\[[0-9;]*m|\[[0-9;]*m/
+        # Multiple patterns to catch various ANSI code formats
+        ansi_patterns = [
+          /\x1b\[[0-9;]*m/,      # ESC [ ... m (most common)
+          /\[[0-9;]*m/,          # [ ... m (variant)
+          /\e\[[0-9;]*m/,        # \e variant
+        ]
 
         # Get all rooms
         all_rows = conn.execute("SELECT id, name, description, summary FROM rooms")
 
         cleaned_count = 0
+        updates = []
 
         all_rows.each do |row|
-          id, name, desc, summary = row
+          id = row["id"]
+          name = row["name"].to_s
+          desc = row["description"].to_s
+          summary = row["summary"].to_s
 
-          # Clean each field
-          clean_name = name.to_s.gsub(ansi_pattern, "").strip if name
-          clean_desc = desc.to_s.gsub(ansi_pattern, "").strip if desc
-          clean_summary = summary.to_s.gsub(ansi_pattern, "").strip if summary
+          # Apply all patterns to clean each field
+          clean_name = name.dup
+          clean_desc = desc.dup
+          clean_summary = summary.dup
 
-          # Update if any field changed
-          if (clean_name && clean_name != name) || (clean_desc && clean_desc != desc) || (clean_summary && clean_summary != summary)
-            conn.execute(
-              "UPDATE rooms SET name = ?, description = ?, summary = ? WHERE id = ?",
-              [clean_name, clean_desc, clean_summary, id]
-            )
+          ansi_patterns.each do |pattern|
+            clean_name.gsub!(pattern, "")
+            clean_desc.gsub!(pattern, "")
+            clean_summary.gsub!(pattern, "")
+          end
+
+          clean_name.strip!
+          clean_desc.strip!
+          clean_summary.strip!
+
+          # Check if anything changed
+          if clean_name != name || clean_desc != desc || clean_summary != summary
+            updates << [clean_name, clean_desc, clean_summary, id]
+            $stderr.puts "[CLEAN] #{id}: '#{name}' -> '#{clean_name}'"
             cleaned_count += 1
           end
+        end
+
+        # Batch update all changes
+        updates.each do |update|
+          conn.execute(
+            "UPDATE rooms SET name = ?, description = ?, summary = ? WHERE id = ?",
+            update
+          )
         end
 
         conn.close
@@ -628,10 +653,11 @@ module LogViz
         $stderr.puts "[MAP] Cleaned ANSI codes from #{cleaned_count} rooms"
 
         content_type :json
-        { cleaned: cleaned_count, message: "Cleaned ANSI codes from #{cleaned_count} rooms", success: true }.to_json
+        { cleaned: cleaned_count, message: "Cleaned #{cleaned_count} rooms", success: true }.to_json
 
       rescue => e
-        $stderr.puts "[MAP ERROR] Clean ANSI failed: #{e.message}"
+        $stderr.puts "[MAP ERROR] Clean ANSI failed: #{e.class} - #{e.message}"
+        $stderr.puts e.backtrace.first(3).join("\n")
         content_type :json
         { error: e.message, cleaned: 0, success: false }.to_json
       end
