@@ -584,82 +584,52 @@ module LogViz
       conn.close
     end
 
-    # Clean ANSI codes from all room names in database
+    # Clean ANSI codes from all room names using pure SQL
     get "/sessions/:id/map/clean-ansi" do
+      content_type :json
+
       begin
         world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
 
         unless File.exist?(world_db_path)
-          content_type :json
-          return { error: "Database not found", cleaned: 0 }.to_json
+          return { error: "Database not found", cleaned: 0, success: false }.to_json
         end
 
         conn = SQLite3::Database.new(world_db_path)
-        conn.results_as_hash = true
         conn.execute("PRAGMA busy_timeout = 5000")
 
-        # Multiple patterns to catch various ANSI code formats
-        ansi_patterns = [
-          /\x1b\[[0-9;]*m/,      # ESC [ ... m (most common)
-          /\[[0-9;]*m/,          # [ ... m (variant)
-          /\e\[[0-9;]*m/,        # \e variant
+        # List of common ANSI codes to remove
+        # Just do direct string replacements
+        ansi_codes = [
+          "[0;33m", "[0;31m", "[0;32m", "[0;34m", "[0;35m", "[0;36m", "[0;37m",
+          "[1;33m", "[1;31m", "[1;32m", "[1;34m", "[1;35m", "[1;36m", "[1;37m",
+          "[33m", "[31m", "[32m", "[34m", "[35m", "[36m", "[37m", "[0m"
         ]
 
-        # Get all rooms
-        all_rows = conn.execute("SELECT id, name, description, summary FROM rooms")
-
-        cleaned_count = 0
-        updates = []
-
-        all_rows.each do |row|
-          id = row["id"]
-          name = row["name"].to_s
-          desc = row["description"].to_s
-          summary = row["summary"].to_s
-
-          # Apply all patterns to clean each field
-          clean_name = name.dup
-          clean_desc = desc.dup
-          clean_summary = summary.dup
-
-          ansi_patterns.each do |pattern|
-            clean_name.gsub!(pattern, "")
-            clean_desc.gsub!(pattern, "")
-            clean_summary.gsub!(pattern, "")
-          end
-
-          clean_name.strip!
-          clean_desc.strip!
-          clean_summary.strip!
-
-          # Check if anything changed
-          if clean_name != name || clean_desc != desc || clean_summary != summary
-            updates << [clean_name, clean_desc, clean_summary, id]
-            $stderr.puts "[CLEAN] #{id}: '#{name}' -> '#{clean_name}'"
-            cleaned_count += 1
-          end
+        ansi_codes.each do |code|
+          conn.execute("UPDATE rooms SET name = REPLACE(name, ?, '') WHERE name LIKE ?", [code, "%#{code}%"])
+          conn.execute("UPDATE rooms SET description = REPLACE(description, ?, '') WHERE description LIKE ?", [code, "%#{code}%"])
+          conn.execute("UPDATE rooms SET summary = REPLACE(summary, ?, '') WHERE summary LIKE ?", [code, "%#{code}%"])
         end
 
-        # Batch update all changes
-        updates.each do |update|
-          conn.execute(
-            "UPDATE rooms SET name = ?, description = ?, summary = ? WHERE id = ?",
-            update
-          )
-        end
+        # Also remove ESC character if present (CHAR(27))
+        esc_code = "\x1b"
+        conn.execute("UPDATE rooms SET name = REPLACE(name, ?, '') WHERE name LIKE ?", [esc_code, "%#{esc_code}%"])
+        conn.execute("UPDATE rooms SET description = REPLACE(description, ?, '') WHERE description LIKE ?", [esc_code, "%#{esc_code}%"])
+        conn.execute("UPDATE rooms SET summary = REPLACE(summary, ?, '') WHERE summary LIKE ?", [esc_code, "%#{esc_code}%"])
+
+        # Trim whitespace
+        conn.execute("UPDATE rooms SET name = TRIM(name), description = TRIM(description), summary = TRIM(summary)")
 
         conn.close
 
-        $stderr.puts "[MAP] Cleaned ANSI codes from #{cleaned_count} rooms"
+        $stderr.puts "[MAP] ANSI cleanup completed"
 
-        content_type :json
-        { cleaned: cleaned_count, message: "Cleaned #{cleaned_count} rooms", success: true }.to_json
+        return { cleaned: 1, message: "Cleaned room names", success: true }.to_json
 
       rescue => e
-        $stderr.puts "[MAP ERROR] Clean ANSI failed: #{e.class} - #{e.message}"
-        $stderr.puts e.backtrace.first(3).join("\n")
-        content_type :json
-        { error: e.message, cleaned: 0, success: false }.to_json
+        $stderr.puts "[MAP ERROR] #{e.class}: #{e.message}"
+        return { error: e.message, cleaned: 0, success: false }.to_json
       end
     end
 
