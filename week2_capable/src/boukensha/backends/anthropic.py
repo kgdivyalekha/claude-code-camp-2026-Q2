@@ -87,11 +87,19 @@ class Anthropic(BackendBase):
         max_output_tokens: int = 1024,
         tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
+        tool_list = tools if tools is not None else self.to_tools(context.tools)
+
+        # Add ephemeral cache control to the last tool. Prompt cache gives ~90%
+        # discount on cached input; the system prompt + tool definitions are
+        # stable within a phase, making them ideal cache prefix. (§3.5)
+        if tool_list:
+            tool_list = [*tool_list[:-1], {**tool_list[-1], "cache_control": {"type": "ephemeral"}}]
+
         return {
             "model": self.model,
             "system": context.system,
             "max_tokens": max_output_tokens,
-            "tools": tools if tools is not None else self.to_tools(context.tools),
+            "tools": tool_list,
             "messages": self.to_messages(context.messages),
         }
 

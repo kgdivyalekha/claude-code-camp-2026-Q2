@@ -175,6 +175,7 @@ class Logger:
             return {}
 
         tokens = self._usage_tokens(usage)
+        cache_tokens = self._cache_tokens(usage)
         metadata = {
             "task": self._task_name(task),
             "provider": self._provider_name(backend),
@@ -183,6 +184,8 @@ class Logger:
             "usage_level": getattr(backend, "usage_level", None),
             "input_tokens": tokens.get("input"),
             "output_tokens": tokens.get("output"),
+            "cache_read_input_tokens": cache_tokens.get("read"),
+            "cache_creation_input_tokens": cache_tokens.get("write"),
             "cost_usd": self._estimate_cost(backend, tokens),
         }
         return {k: v for k, v in metadata.items() if v is not None}
@@ -210,6 +213,14 @@ class Logger:
             "output": self._first_integer(
                 usage, "output_tokens", "completion_tokens", "candidatesTokenCount", "eval_count"
             ),
+        }
+
+    @staticmethod
+    def _cache_tokens(usage: Optional[Dict[str, Any]]) -> Dict[str, Optional[int]]:
+        usage = usage or {}
+        return {
+            "read": usage.get("cache_read_input_tokens"),
+            "write": usage.get("cache_creation_input_tokens"),
         }
 
     @staticmethod
