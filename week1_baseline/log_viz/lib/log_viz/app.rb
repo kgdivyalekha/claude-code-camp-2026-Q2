@@ -178,6 +178,7 @@ module LogViz
       @iterations_per_turn = @analytics.iterations_per_turn(id)
       @context_pressure = @analytics.context_pressure(id)
       @tool_usage = @analytics.tool_usage(id)
+      @compression_metrics = @analytics.compression_metrics(id, settings.sessions_dir)
 
       erb :tokens
     end

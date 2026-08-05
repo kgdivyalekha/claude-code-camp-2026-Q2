@@ -38,6 +38,16 @@ try:
 except ImportError:
     GuardedRegistry = None  # type: ignore[assignment,misc]
 
+# M7 integration: optional compression hooks and world memory
+try:
+    from .tokens.compress import CompressionHooks
+    from .world.db import WorldDB
+    from .observability.navigation import NavigationTracker
+except ImportError:
+    CompressionHooks = None  # type: ignore[assignment,misc]
+    WorldDB = None  # type: ignore[assignment,misc]
+    NavigationTracker = None  # type: ignore[assignment,misc]
+
 __version__ = "0.12.0"
 
 _API_KEY_ENV_VARS = {
@@ -91,6 +101,7 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
 
     Returns a GuardedRegistry if available, otherwise returns the original registry.
     Creates an AuditLog in .boukensha/events.db to record all tool decisions.
+    Wires in M7 compression hooks if available.
     """
     if GuardedRegistry is None:
         return registry
@@ -105,6 +116,63 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
         # Set up hooks and audit
         hooks = HookRegistry()
         audit = AuditLog(".boukensha/events.db")
+
+        # M7: Register compression hooks if available
+        if CompressionHooks is not None and WorldDB is not None:
+            try:
+                world_db = WorldDB()
+                compression = CompressionHooks(world_db, logger=logger)
+
+                # Register compression hooks with high priority (run last)
+                hooks.register(
+                    "after_tool_call",
+                    compression.compress_repeat_rooms,
+                    priority=90,
+                )
+                hooks.register(
+                    "after_tool_call",
+                    compression.strip_banners,
+                    priority=85,
+                )
+                hooks.register(
+                    "after_tool_call",
+                    compression.collapse_failures,
+                    priority=80,
+                )
+            except Exception as e:
+                print(f"[boukensha] warning: compression hooks setup failed: {e}", file=sys.stderr)
+
+        # M6: Register NavigationTracker if available
+        if NavigationTracker is not None and WorldDB is not None:
+            try:
+                world_db = WorldDB()
+                nav_tracker = NavigationTracker(world_db)
+
+                def _navigation_hook(actor, name, args, result):
+                    """Adapter to let NavigationTracker observe tool results."""
+                    if name == "look":
+                        nav_tracker.on_look_result(result, actor=actor.id if actor else None)
+                    elif name == "move":
+                        # move args should have direction; current room should be cached
+                        direction = args.get("direction", "unknown")
+                        current = nav_tracker.get_current_room()
+                        if current:
+                            nav_tracker.on_move_result(
+                                result,
+                                from_room_id=current,
+                                direction=direction,
+                                actor=actor.id if actor else None,
+                            )
+                    return None  # Don't rewrite result
+
+                # Register with low priority (run first, before compression)
+                hooks.register(
+                    "after_tool_call",
+                    _navigation_hook,
+                    priority=10,
+                )
+            except Exception as e:
+                print(f"[boukensha] warning: NavigationTracker setup failed: {e}", file=sys.stderr)
 
         # Wrap and return
         return GuardedRegistry(

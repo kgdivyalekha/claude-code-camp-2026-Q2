@@ -130,6 +130,70 @@
     <% end %>
   </section>
 
+  <!-- M7 Compression Metrics (§3.3 lever) -->
+  <% if @compression_metrics[:total_compressions] && @compression_metrics[:total_compressions] > 0 %>
+    <section class="compression-metrics">
+      <h2>M7 Compression (§3.3 — Result Compression Lever)</h2>
+      <p class="description">Repeat-visit room compression: replace full descriptions with compact summaries.</p>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="label">Compressions Triggered</div>
+          <div class="value"><%= @compression_metrics[:total_compressions] %></div>
+        </div>
+        <div class="metric">
+          <div class="label">Total Tokens Saved</div>
+          <div class="value"><%= fmt_tokens(@compression_metrics[:total_tokens_saved]) %></div>
+        </div>
+        <div class="metric">
+          <div class="label">Avg Compression Ratio</div>
+          <div class="value"><%= @compression_metrics[:average_compression_ratio] %>%</div>
+        </div>
+        <div class="metric">
+          <div class="label">Avg Savings/Compression</div>
+          <div class="value"><%= @compression_metrics[:average_savings_per_compression] %> tokens</div>
+        </div>
+      </div>
+
+      <% if @compression_metrics[:compressions].any? %>
+        <h3>Compression Details</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Room</th>
+              <th>Tool</th>
+              <th>Visit #</th>
+              <th>Before</th>
+              <th>After</th>
+              <th>Saved</th>
+              <th>Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @compression_metrics[:compressions].each do |comp| %>
+              <tr>
+                <td><code><%= comp[:room_id]&.slice(0, 12) %>…</code></td>
+                <td><code><%= comp[:tool] %></code></td>
+                <td><%= comp[:visit_count] %></td>
+                <td><%= fmt_tokens(comp[:before_tokens]) %></td>
+                <td><%= fmt_tokens(comp[:after_tokens]) %></td>
+                <td><strong><%= fmt_tokens(comp[:saved_tokens]) %></strong></td>
+                <td><span class="compression-ratio"><%= comp[:compression_ratio] %>%</span></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+
+      <p class="callout">✅ M7 compression active: room revisits compressed <%= @compression_metrics[:average_compression_ratio].round %>% on average.</p>
+    </section>
+  <% elsif @compression_metrics && @compression_metrics[:total_compressions] == 0 %>
+    <section class="compression-metrics empty">
+      <h2>M7 Compression (§3.3 — Result Compression Lever)</h2>
+      <p class="description">Repeat-visit room compression would save tokens when rooms are revisited.</p>
+      <p class="callout info">ℹ No compressions yet. Revisit rooms to trigger compression.</p>
+    </section>
+  <% end %>
+
   <!-- Tokens Per Turn -->
   <% if @tokens_per_turn.any? %>
     <section class="tokens-per-turn">
@@ -347,6 +411,39 @@
         background-color: transparent;
         box-shadow: none;
       }
+    }
+
+    /* M7 Compression metrics styling */
+    .compression-metrics {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .compression-metrics h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      color: #374151;
+    }
+
+    .compression-metrics.empty .callout.info {
+      background-color: #e0e7ff;
+      border-left-color: #6366f1;
+      color: #3730a3;
+    }
+
+    .compression-ratio {
+      background-color: #dbeafe;
+      color: #0c4a6e;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .callout.info {
+      background-color: #dbeafe;
+      border-left-color: #0284c7;
+      color: #0c4a6e;
     }
 
     @media (max-width: 768px) {

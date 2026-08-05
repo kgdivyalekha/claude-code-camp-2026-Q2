@@ -259,6 +259,69 @@ module LogViz
       end
     end
 
+    # M7 Compression metrics: repeat-visit room compression, banner stripping
+    # Reads tokens.compressed events from the JSONL session file
+    # Returns empty hash if no data available (graceful degradation)
+    def compression_metrics(session_id, sessions_dir = ".boukensha/sessions")
+      session_file = File.join(sessions_dir, "#{session_id}.jsonl")
+
+      # Return empty hash if session file doesn't exist
+      unless File.exist?(session_file)
+        return {
+          compressions: [],
+          total_compressions: 0,
+          total_tokens_saved: 0,
+          total_before_tokens: 0,
+          total_after_tokens: 0,
+          average_compression_ratio: 0,
+          average_savings_per_compression: 0,
+        }
+      end
+
+      compressions = []
+      total_saved = 0
+      total_before = 0
+      total_after = 0
+
+      begin
+        File.foreach(session_file) do |line|
+          event = JSON.parse(line)
+          next unless event["phase"] == "tokens.compressed"
+
+          before = event["before_tokens"].to_i
+          after = event["after_tokens"].to_i
+          saved = event["saved"].to_i
+
+          compressions << {
+            tool: event["tool"],
+            before_tokens: before,
+            after_tokens: after,
+            saved_tokens: saved,
+            room_id: event["room_id"],
+            visit_count: event["visit_count"],
+            compression_ratio: before > 0 ? ((saved.to_f / before) * 100).round(1) : 0,
+          }
+
+          total_saved += saved
+          total_before += before
+          total_after += after
+        end
+      rescue StandardError => e
+        # Log error but don't crash; return partial results
+        warn("Error reading compression metrics: #{e.message}")
+      end
+
+      {
+        compressions: compressions,
+        total_compressions: compressions.length,
+        total_tokens_saved: total_saved,
+        total_before_tokens: total_before,
+        total_after_tokens: total_after,
+        average_compression_ratio: total_before > 0 ? ((total_saved.to_f / total_before) * 100).round(1) : 0,
+        average_savings_per_compression: compressions.length > 0 ? (total_saved / compressions.length).round : 0,
+      }
+    end
+
     # All sessions with basic metrics
     def all_sessions(sessions_dir = ".boukensha/sessions")
       return [] unless db

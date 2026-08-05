@@ -130,7 +130,9 @@ class NavigationTracker:
             match = re.search(r"\[\s*Exits:\s*([^\]]+)\]", line, re.IGNORECASE)
             if match:
                 exits_str = match.group(1)
-                exits = [d.strip().lower() for d in exits_str.split() if d.strip()]
+                # Split on comma or space, and strip commas
+                raw_exits = re.split(r"[,\s]+", exits_str)
+                exits = [d.lower() for d in raw_exits if d.strip() and d.lower() not in ("", ",")]
                 exits_found = True
                 continue
 

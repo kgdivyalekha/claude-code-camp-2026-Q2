@@ -242,7 +242,14 @@
       "Bash(/home/system/.rbenv/versions/3.2.3/bin/ruby *)",
       "Bash(git log *)",
       "Bash(rm -f //wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/.boukensha/events.db* //wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/.boukensha/world.db*)",
-      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/**)"
+      "Read(///wsl.localhost/Ubuntu/home/system/claude-code-camp-2026-Q2/week2_capable/**)",
+      "PowerShell(wsl python3 test_compression_m7.py 2>&1)",
+      "Bash(grep -E \"\\\\.\\(py|rb\\)$\")",
+      "Bash(ruby test_cost_fix.rb)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(grep -E \"\\\\.py$|\\\\.sh$|\\\\.json$|\\\\.md$\")",
+      "Bash(awk '{print $NF}')"
     ]
   }
 }
