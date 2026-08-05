@@ -317,15 +317,25 @@
   const currentRoomId = <%= @current_room_id.to_json %>;
   const positions = <%= @positions.to_json %>;
 
-  if (rooms.length > 0) {
-    const currentRoom = currentRoomId ? rooms.find(r => r.id === currentRoomId) : rooms[0];
+  if (rooms && rooms.length > 0) {
+    // Try to find by current_room_id from navigation_log, fall back to first room
+    let currentRoom = null;
+    if (currentRoomId) {
+      currentRoom = rooms.find(r => r.id === currentRoomId);
+    }
+    if (!currentRoom) {
+      // Fallback: use the most recently visited room (first in list, sorted by last_seen DESC)
+      currentRoom = rooms[0];
+    }
 
-    if (currentRoom) {
-      document.getElementById('player-room').textContent = 'at ' + currentRoom.name;
+    if (currentRoom && currentRoom.id) {
+      document.getElementById('player-room').textContent = '📍 at ' + currentRoom.name;
 
-      const playerRoomRect = document.getElementById('room-' + currentRoom.id);
-      if (playerRoomRect) {
-        // Highlight the room box
+      const playerRoomId = 'room-' + currentRoom.id;
+      const playerRoomRect = document.getElementById(playerRoomId);
+
+      if (playerRoomRect && positions[currentRoom.id]) {
+        // Highlight the room box with stronger styling
         playerRoomRect.setAttribute('stroke', '#FF6B6B');
         playerRoomRect.setAttribute('stroke-width', '4');
         playerRoomRect.setAttribute('filter', 'drop-shadow(0 0 12px #FF6B6B)');
@@ -333,46 +343,47 @@
 
         // Add player indicator circle
         const pos = positions[currentRoom.id];
-        if (pos) {
-          const x = pos.x * 120 + 60;
-          const y = pos.y * 120 + 60;
+        const x = pos.x * 120 + 60;
+        const y = pos.y * 120 + 60;
 
-          // Large outer circle (pulsing effect via CSS)
-          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          circle.setAttribute('cx', x);
-          circle.setAttribute('cy', y);
-          circle.setAttribute('r', '55');
-          circle.setAttribute('fill', 'none');
-          circle.setAttribute('stroke', '#FF6B6B');
-          circle.setAttribute('stroke-width', '3');
-          circle.setAttribute('stroke-dasharray', '8,4');
-          circle.setAttribute('opacity', '0.6');
-          circle.setAttribute('class', 'player-circle');
-          svg.insertBefore(circle, svg.firstChild.nextSibling);
+        // Outer dashed circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '55');
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', '#FF6B6B');
+        circle.setAttribute('stroke-width', '3');
+        circle.setAttribute('stroke-dasharray', '8,4');
+        circle.setAttribute('opacity', '0.7');
+        circle.setAttribute('class', 'player-circle');
+        svg.insertBefore(circle, svg.firstChild.nextSibling);
 
-          // Inner solid circle
-          const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          innerCircle.setAttribute('cx', x);
-          innerCircle.setAttribute('cy', y);
-          innerCircle.setAttribute('r', '8');
-          innerCircle.setAttribute('fill', '#FF6B6B');
-          svg.appendChild(innerCircle);
+        // Inner solid circle
+        const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        innerCircle.setAttribute('cx', x);
+        innerCircle.setAttribute('cy', y);
+        innerCircle.setAttribute('r', '8');
+        innerCircle.setAttribute('fill', '#FF6B6B');
+        svg.appendChild(innerCircle);
 
-          // Label
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          label.setAttribute('x', x);
-          label.setAttribute('y', y - 70);
-          label.setAttribute('text-anchor', 'middle');
-          label.setAttribute('fill', '#FF6B6B');
-          label.setAttribute('font-weight', 'bold');
-          label.setAttribute('font-size', '16');
-          label.setAttribute('filter', 'drop-shadow(0 0 4px rgba(0,0,0,0.8))');
-          label.textContent = '📍 YOU ARE HERE';
-          svg.appendChild(label);
-        }
+        // Label: YOU ARE HERE
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', x);
+        label.setAttribute('y', y - 70);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('fill', '#FF6B6B');
+        label.setAttribute('font-weight', 'bold');
+        label.setAttribute('font-size', '14');
+        label.setAttribute('filter', 'drop-shadow(0 0 4px rgba(0,0,0,0.8))');
+        label.textContent = '📍 YOU ARE HERE';
+        svg.appendChild(label);
+      } else if (playerRoomRect) {
+        // Room rect exists but no position - still highlight it
+        playerRoomRect.setAttribute('stroke', '#FF6B6B');
+        playerRoomRect.setAttribute('stroke-width', '3');
+        playerRoomRect.setAttribute('filter', 'drop-shadow(0 0 8px #FF6B6B)');
       }
-    } else {
-      document.getElementById('player-room').textContent = 'Location unknown';
     }
   }
 

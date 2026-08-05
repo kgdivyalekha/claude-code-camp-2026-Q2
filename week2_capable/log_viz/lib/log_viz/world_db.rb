@@ -101,10 +101,10 @@ module LogViz
       conn.execute(sql).map do |row|
         {
           id: row["id"],
-          name: row["name"],
+          name: strip_ansi(row["name"]),
           signature: row["signature"],
-          description: row["description"],
-          summary: row["summary"],
+          description: strip_ansi(row["description"]),
+          summary: strip_ansi(row["summary"]),
           confidence: row["confidence"],
           visit_count: row["visit_count"],
           first_seen: row["first_seen"],
@@ -165,10 +165,10 @@ module LogViz
 
       {
         id: row["id"],
-        name: row["name"],
+        name: strip_ansi(row["name"]),
         signature: row["signature"],
-        description: row["description"],
-        summary: row["summary"],
+        description: strip_ansi(row["description"]),
+        summary: strip_ansi(row["summary"]),
         confidence: row["confidence"],
         visit_count: row["visit_count"],
         first_seen: row["first_seen"],
@@ -283,6 +283,13 @@ module LogViz
         target_id = parts[1].to_s.strip
         acc[direction] = target_id if direction.length > 0
       end
+    end
+
+    private
+
+    def strip_ansi(text)
+      # Remove ANSI escape codes like \x1b[0;33m
+      text.to_s.gsub(/\x1b\[[0-9;]*m|\[[0-9;]*m/, "").strip
     end
   end
 end
