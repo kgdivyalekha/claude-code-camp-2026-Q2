@@ -124,28 +124,20 @@ module LogViz
 
       total_cost_from_db = row["total_cost_from_db"].to_f
       turn_count = row["turn_count"].to_i
-      response_count = row["response_count"].to_i
       input_tokens = row["input_tokens"].to_i
       output_tokens = row["output_tokens"].to_i
       cache_read_tokens = row["cache_read_tokens"].to_i
       cache_write_tokens = row["cache_write_tokens"].to_i
       model = row["model"].to_s
 
-      # If cost_usd is populated for all response events, use it directly
-      # Otherwise estimate from tokens, properly accounting for cache rates
+      # Always recalculate from tokens with proper cache rates
+      # API's cost_usd is incomplete (only final response has it, not all iterations)
       rates = model_pricing_rates(model)
-
-      if total_cost_from_db > 0 && (total_cost_from_db / response_count.to_f) > 0.00001
-        # API populated cost for all events, use it
-        actual_total = total_cost_from_db
-      else
-        # Recalculate from tokens with proper cache rates
-        input_cost = (input_tokens / 1_000_000.0) * rates[:input]
-        output_cost = (output_tokens / 1_000_000.0) * rates[:output]
-        cache_read_cost = (cache_read_tokens / 1_000_000.0) * rates[:input] * 0.1
-        cache_write_cost = (cache_write_tokens / 1_000_000.0) * rates[:input] * 1.25
-        actual_total = input_cost + output_cost + cache_read_cost + cache_write_cost
-      end
+      input_cost = (input_tokens / 1_000_000.0) * rates[:input]
+      output_cost = (output_tokens / 1_000_000.0) * rates[:output]
+      cache_read_cost = (cache_read_tokens / 1_000_000.0) * rates[:input] * 0.1
+      cache_write_cost = (cache_write_tokens / 1_000_000.0) * rates[:input] * 1.25
+      actual_total = input_cost + output_cost + cache_read_cost + cache_write_cost
 
       {
         total_usd: actual_total,
