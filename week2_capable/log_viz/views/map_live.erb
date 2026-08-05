@@ -226,44 +226,50 @@
   // Initialize theme
   applyTheme(isDarkMode);
 
-  // Find and highlight player's current room (last discovered room for now)
+  // Find and highlight player's current room from navigation_log
   const rooms = <%= @rooms.to_json %>;
+  const currentRoomId = <%= @current_room_id.to_json %>;
   if (rooms.length > 0) {
-    const currentRoom = rooms[rooms.length - 1];
-    document.getElementById('player-room').textContent = 'at ' + currentRoom.name;
+    const currentRoom = currentRoomId ? rooms.find(r => r.id === currentRoomId) : null;
 
-    const playerRoomRect = document.getElementById('room-' + currentRoom.id);
-    if (playerRoomRect) {
-      playerRoomRect.setAttribute('stroke', '#FF6B6B');
-      playerRoomRect.setAttribute('stroke-width', '3');
-      playerRoomRect.style.filter = 'drop-shadow(0 0 8px #FF6B6B)';
+    if (currentRoom) {
+      document.getElementById('player-room').textContent = 'at ' + currentRoom.name;
 
-      // Add player indicator
-      const pos = <%= @positions.to_json %>[currentRoom.id];
-      if (pos) {
-        const x = pos.x * 120 + 60;
-        const y = pos.y * 120 + 60;
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', '50');
-        circle.setAttribute('fill', 'none');
-        circle.setAttribute('stroke', '#FF6B6B');
-        circle.setAttribute('stroke-width', '2');
-        circle.setAttribute('stroke-dasharray', '5,5');
-        circle.setAttribute('opacity', '0.5');
-        svg.insertBefore(circle, svg.firstChild.nextSibling);
+      const playerRoomRect = document.getElementById('room-' + currentRoom.id);
+      if (playerRoomRect) {
+        playerRoomRect.setAttribute('stroke', '#FF6B6B');
+        playerRoomRect.setAttribute('stroke-width', '3');
+        playerRoomRect.style.filter = 'drop-shadow(0 0 8px #FF6B6B)';
 
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', x);
-        label.setAttribute('y', y - 60);
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('fill', '#FF6B6B');
-        label.setAttribute('font-weight', 'bold');
-        label.setAttribute('font-size', '14');
-        label.textContent = '📍 PLAYER';
-        svg.appendChild(label);
+        // Add player indicator
+        const pos = <%= @positions.to_json %>[currentRoom.id];
+        if (pos) {
+          const x = pos.x * 120 + 60;
+          const y = pos.y * 120 + 60;
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', '50');
+          circle.setAttribute('fill', 'none');
+          circle.setAttribute('stroke', '#FF6B6B');
+          circle.setAttribute('stroke-width', '2');
+          circle.setAttribute('stroke-dasharray', '5,5');
+          circle.setAttribute('opacity', '0.5');
+          svg.insertBefore(circle, svg.firstChild.nextSibling);
+
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', x);
+          label.setAttribute('y', y - 60);
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('fill', '#FF6B6B');
+          label.setAttribute('font-weight', 'bold');
+          label.setAttribute('font-size', '14');
+          label.textContent = '📍 PLAYER';
+          svg.appendChild(label);
+        }
       }
+    } else {
+      document.getElementById('player-room').textContent = 'Location unknown';
     }
   }
 

@@ -146,7 +146,7 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
         if NavigationTracker is not None and WorldDB is not None:
             try:
                 world_db = WorldDB()
-                nav_tracker = NavigationTracker(world_db)
+                nav_tracker = NavigationTracker(world_db, session_id=session_id)
 
                 def _navigation_hook(actor, name, args, result):
                     """Adapter to let NavigationTracker observe tool results."""

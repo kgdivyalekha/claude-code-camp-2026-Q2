@@ -452,12 +452,37 @@ module LogViz
         @room_count = @world.room_count
         @positions = @world.layout_rooms if @rooms.any?
 
-        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}"
+        # Get the current room from navigation_log (most recent entry)
+        @current_room_id = get_current_room_id(id) if @world_available
+
+        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}"
 
         erb :map_live
       rescue => e
         halt 500, "Error loading world map: #{e.message}\n#{e.backtrace.join("\n")}"
       end
+    end
+
+    # Get the current room ID from navigation_log (most recent successful move or look)
+    def get_current_room_id(session_id)
+      db_path = File.expand_path("../.boukensha/world.db", settings.root)
+      return nil unless File.exist?(db_path)
+
+      conn = SQLite3::Database.new(db_path)
+      conn.results_as_hash = true
+
+      # Get the most recent to_room from navigation_log for this session
+      result = conn.execute(
+        "SELECT to_room FROM navigation_log WHERE session_id = ? AND to_room IS NOT NULL ORDER BY id DESC LIMIT 1",
+        [session_id]
+      ).first
+
+      conn.close
+
+      result ? result["to_room"] : nil
+    rescue => e
+      $stderr.puts "Error getting current room: #{e.message}"
+      nil
     end
 
     # Ensure world.db schema exists (helper for map route)

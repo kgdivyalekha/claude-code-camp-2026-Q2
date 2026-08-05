@@ -83,9 +83,9 @@ File.delete(db_path) if File.exist?(db_path)
 # Create connection
 db = SQLite3::Database.new(db_path)
 db.results_as_hash = true
-db.execute("PRAGMA journal_mode = WAL")
+# Skip WAL mode which can cause I/O errors on WSL/mounted filesystems
+db.execute("PRAGMA journal_mode = DELETE")
 db.execute("PRAGMA synchronous = NORMAL")
-db.execute("PRAGMA mmap_size = #{256 * 1024 * 1024}")
 db.execute("PRAGMA busy_timeout = 5000")
 db.execute("PRAGMA foreign_keys = ON")
 

@@ -16,10 +16,12 @@ from boukensha.world.identity import RoomReconciler
 class NavigationTracker:
     """Parse look/move results and update world.db."""
 
-    def __init__(self, world_db: WorldDB):
+    def __init__(self, world_db: WorldDB, session_id: Optional[str] = None, turn: int = 0):
         self.world_db = world_db
         self.reconciler = RoomReconciler(world_db)
         self._current_room_id: Optional[str] = None
+        self.session_id = session_id
+        self.turn = turn
 
     def on_look_result(
         self,
@@ -44,6 +46,19 @@ class NavigationTracker:
                 discovered_by=actor,
             )
             self._current_room_id = room_id
+
+            # Log the look result to navigation_log
+            if self.session_id:
+                self.world_db.log_movement(
+                    session_id=self.session_id,
+                    actor=actor or "unknown",
+                    turn=self.turn,
+                    from_room_id=room_id,
+                    direction="look",
+                    to_room_id=room_id,
+                    success=True,
+                )
+
             return room_id
         except ValueError as e:
             # Parse failure — log and continue
@@ -77,6 +92,19 @@ class NavigationTracker:
             if re.search(pattern, result):
                 # Movement failed; record blocked exit
                 self.world_db.block_exit(from_room_id, direction, "blocked")
+
+                # Log failed movement
+                if self.session_id:
+                    self.world_db.log_movement(
+                        session_id=self.session_id,
+                        actor=actor or "unknown",
+                        turn=self.turn,
+                        from_room_id=from_room_id,
+                        direction=direction,
+                        to_room_id=from_room_id,
+                        success=False,
+                        reason="blocked",
+                    )
                 return None
 
         # Try to parse the new room from the output
@@ -91,9 +119,33 @@ class NavigationTracker:
             # Confirm the edge via reciprocity
             self.reconciler.confirm_movement(from_room_id, direction, to_room_id)
             self._current_room_id = to_room_id
+
+            # Log successful movement
+            if self.session_id:
+                self.world_db.log_movement(
+                    session_id=self.session_id,
+                    actor=actor or "unknown",
+                    turn=self.turn,
+                    from_room_id=from_room_id,
+                    direction=direction,
+                    to_room_id=to_room_id,
+                    success=True,
+                )
+
             return to_room_id
         except ValueError:
             # Could not parse new room; mark exit as untraversed but not blocked
+            if self.session_id:
+                self.world_db.log_movement(
+                    session_id=self.session_id,
+                    actor=actor or "unknown",
+                    turn=self.turn,
+                    from_room_id=from_room_id,
+                    direction=direction,
+                    to_room_id=from_room_id,
+                    success=False,
+                    reason="parse_failed",
+                )
             return None
 
     def get_current_room(self) -> Optional[str]:
