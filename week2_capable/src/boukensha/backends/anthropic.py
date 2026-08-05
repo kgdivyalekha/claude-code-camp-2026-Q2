@@ -89,11 +89,12 @@ class Anthropic(BackendBase):
     ) -> Dict[str, Any]:
         tool_list = tools if tools is not None else self.to_tools(context.tools)
 
+        # TODO: M8 cache_control marker breaks tool invocation — temporarily disabled
         # Add ephemeral cache control to the last tool. Prompt cache gives ~90%
         # discount on cached input; the system prompt + tool definitions are
         # stable within a phase, making them ideal cache prefix. (§3.5)
-        if tool_list:
-            tool_list = [*tool_list[:-1], {**tool_list[-1], "cache_control": {"type": "ephemeral"}}]
+        # if tool_list:
+        #     tool_list = [*tool_list[:-1], {**tool_list[-1], "cache_control": {"type": "ephemeral"}}]
 
         return {
             "model": self.model,
