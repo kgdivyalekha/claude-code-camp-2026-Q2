@@ -90,9 +90,10 @@ module LogViz
         SELECT
           r.id, r.name, r.signature, r.description, r.summary,
           r.confidence, r.visit_count, r.first_seen, r.last_seen,
-          r.discovered_by, GROUP_CONCAT(e.direction || ':' || e.target_room_id) as exits_raw
+          r.discovered_by, GROUP_CONCAT(e.direction || ':' || COALESCE(e.target_room_id, '')) as exits_raw
         FROM rooms r
-        LEFT JOIN exits e ON r.id = e.room_id AND e.target_room_id IS NOT NULL
+        LEFT JOIN exits e ON r.id = e.room_id
+        WHERE e.blocked_reason IS NULL
         GROUP BY r.id
         ORDER BY r.last_seen DESC
       SQL

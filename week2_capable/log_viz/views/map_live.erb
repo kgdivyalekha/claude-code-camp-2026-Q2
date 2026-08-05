@@ -3,9 +3,13 @@
 <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2rem;">
   <div>
     <h1 style="margin: 0 0 0.5rem 0;">🗺️ World Map</h1>
-    <p class="meta">Session <%= @session.id %> · <%= @room_count %> rooms · <span id="player-room">Loading...</span></p>
+    <p class="meta">Session <%= @session.id %> · <span id="room-count"><%= @room_count %></span> rooms · <span id="player-room">Loading...</span></p>
   </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
+    <label style="display: flex; align-items: center; gap: 0.5rem; color: #e0e0e0; cursor: pointer; font-size: 0.9rem;">
+      <input type="checkbox" id="auto-refresh" checked style="cursor: pointer; width: 16px; height: 16px;">
+      🔄 Auto-refresh
+    </label>
     <button id="theme-toggle" style="
       padding: 0.5rem 1rem;
       border: 2px solid rgba(255, 107, 107, 0.5);
@@ -110,14 +114,14 @@
           </style>
         </defs>
 
-        <!-- Draw connections between rooms -->
+        <!-- Draw connections between rooms (only confirmed connections with target rooms) -->
         <% @rooms.each do |room| %>
           <% if @positions[room[:id]] %>
             <% from_pos = @positions[room[:id]] %>
             <% from_x = from_pos[:x] * 120 + 60 %>
             <% from_y = from_pos[:y] * 120 + 60 %>
             <% room[:exits].each do |direction, target_id| %>
-              <% if target_id && @positions[target_id] %>
+              <% if target_id.to_s.strip != "" && @positions[target_id] %>
                 <% to_pos = @positions[target_id] %>
                 <% to_x = to_pos[:x] * 120 + 60 %>
                 <% to_y = to_pos[:y] * 120 + 60 %>
@@ -162,8 +166,10 @@
               <%=  room[:visit_count] %>×
             </text>
 
-            <!-- Direction labels and arrows -->
+            <!-- Direction labels and arrows (for traversed exits) -->
             <% room[:exits].each do |direction, target_id| %>
+              <% is_traversed = target_id.to_s.strip != "" %>
+              <% next unless is_traversed %>
               <% arrow_offset = 50 %>
               <% dir_map = {
                 'north' => [0, -arrow_offset, 'N'],
@@ -335,5 +341,33 @@
     }
 
     document.getElementById('room-info-panel').style.display = 'block';
+  }
+
+  // Auto-refresh map as agent explores
+  const autoRefreshCheckbox = document.getElementById('auto-refresh');
+  let refreshInterval;
+
+  function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+      location.reload();
+    }, 3000);  // Refresh every 3 seconds
+  }
+
+  function stopAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+  }
+
+  autoRefreshCheckbox.addEventListener('change', () => {
+    if (autoRefreshCheckbox.checked) {
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+  });
+
+  // Start auto-refresh on page load
+  if (autoRefreshCheckbox.checked) {
+    startAutoRefresh();
   }
 </script>

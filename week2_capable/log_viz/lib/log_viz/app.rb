@@ -455,7 +455,15 @@ module LogViz
         # Get the current room from navigation_log (most recent entry)
         @current_room_id = get_current_room_id(id) if @world_available
 
-        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}"
+        # Debug: log exits and connections
+        total_exits = @rooms.sum { |r| r[:exits] ? r[:exits].length : 0 }
+        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}, total_exits=#{total_exits}"
+
+        # Log first room's exits as sample
+        if @rooms.any?
+          first_room = @rooms.first
+          $stderr.puts "DEBUG: first_room=#{first_room[:name]}, exits=#{first_room[:exits].inspect}"
+        end
 
         erb :map_live
       rescue => e
