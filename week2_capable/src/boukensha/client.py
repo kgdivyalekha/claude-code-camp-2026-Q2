@@ -13,8 +13,8 @@ class Client:
     """Makes HTTP requests to LLM APIs and handles retries with exponential backoff."""
 
     RETRYABLE_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
-    MAX_RETRIES = 3
-    BASE_RETRY_DELAY = 0.5
+    MAX_RETRIES = 5  # Increased from 3 to handle API overload better
+    BASE_RETRY_DELAY = 1.0  # Increased from 0.5s to give API more recovery time
 
     def __init__(self, builder: Any) -> None:
         """Initialize client with a PromptBuilder instance."""
@@ -120,7 +120,10 @@ class Client:
 
     @staticmethod
     def _retry_delay(attempt: int) -> float:
-        """Calculate exponential backoff delay: 0.5s, 1s, 2s, 4s, ...
+        """Calculate exponential backoff delay: 1s, 2s, 4s, 8s, 16s
+
+        Handles transient API errors (429 rate limit, 503 overload) with increasing delays.
+        For API overload (429), these delays give the backend time to recover.
 
         Args:
             attempt: Attempt number (1-indexed)
