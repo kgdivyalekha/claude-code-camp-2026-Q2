@@ -799,5 +799,51 @@ module LogViz
         summary: @audit.session_summary(id),
       }.to_json
     end
+
+    # Clean ANSI escape codes from room names
+    get "/sessions/:id/map/clean-ansi" do
+      content_type :json
+      id = File.basename(params[:id])
+
+      begin
+        world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+        halt 404, { error: "Database not found", cleaned: 0, success: false }.to_json unless File.exist?(world_db_path)
+
+        conn = SQLite3::Database.new(world_db_path)
+        conn.execute("PRAGMA busy_timeout = 10000")
+
+        # Remove ESC character (CHAR(27)) first
+        esc_char = "\x1b"
+        conn.execute("UPDATE rooms SET name = REPLACE(name, ?, '')", [esc_char])
+        conn.execute("UPDATE rooms SET description = REPLACE(description, ?, '')", [esc_char])
+        conn.execute("UPDATE rooms SET summary = REPLACE(summary, ?, '')", [esc_char])
+
+        # Remove all ANSI bracket codes
+        codes = [
+          "[0;33m", "[0;31m", "[0;32m", "[0;34m", "[0;35m", "[0;36m", "[0;37m",
+          "[1;33m", "[1;31m", "[1;32m", "[1;34m", "[1;35m", "[1;36m", "[1;37m",
+          "[33m", "[31m", "[32m", "[34m", "[35m", "[36m", "[37m", "[0m"
+        ]
+
+        codes.each do |code|
+          conn.execute("UPDATE rooms SET name = REPLACE(name, ?, '')", [code])
+          conn.execute("UPDATE rooms SET description = REPLACE(description, ?, '')", [code])
+          conn.execute("UPDATE rooms SET summary = REPLACE(summary, ?, '')", [code])
+        end
+
+        # Trim whitespace
+        conn.execute("UPDATE rooms SET name = TRIM(name)")
+        conn.execute("UPDATE rooms SET description = TRIM(description)")
+        conn.execute("UPDATE rooms SET summary = TRIM(summary)")
+
+        conn.close
+
+        { cleaned: 1, message: "Cleaned ANSI codes from room names", success: true }.to_json
+
+      rescue => e
+        $stderr.puts "[CLEAN-ANSI ERROR] #{e.class}: #{e.message}"
+        { error: e.message, cleaned: 0, success: false }.to_json
+      end
+    end
   end
 end

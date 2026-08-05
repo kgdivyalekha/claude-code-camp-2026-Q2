@@ -249,7 +249,20 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(grep -E \"\\\\.py$|\\\\.sh$|\\\\.json$|\\\\.md$\")",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(python -m pytest week2_capable/test/test_logger.py -xvs)",
+      "Bash(python -m boukensha --help)",
+      "Bash(/home/system/claude-code-camp-2026-Q2/week0_explore/mud_manager/bin/mud-manager --mcp)",
+      "Bash(jobs)",
+      "Bash(boukensha \"look around\")",
+      "Bash(./venv/bin/boukensha \"look around\")",
+      "Bash(python -m week2_capable.bin.boukensha \"look around\")",
+      "Bash(ruby ./week1_baseline/ruby/10_standard_tool_library/bin/boukensha \"look around\")",
+      "Bash(xargs grep -l \"map\\\\|room\")",
+      "Bash(ruby cleanup_duplicates.rb)",
+      "Bash(grep -n \"def.*map\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\log_viz\\\\lib\\\\log_viz\\\\app.rb\")",
+      "Bash(grep *)",
+      "Bash(wc *)"
     ]
   }
 }

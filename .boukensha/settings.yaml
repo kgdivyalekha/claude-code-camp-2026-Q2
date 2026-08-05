@@ -19,9 +19,10 @@ mud:
 # launch from the repo root yourself.
 mcp_servers:
   mud:
-    command: /home/system/claude-code-camp-2026-Q2/week0_explore/mud_manager/bin/mud-manager
-    args:    [--mcp]
+    command: ruby
+    args:    [/home/system/claude-code-camp-2026-Q2/week0_explore/mud_manager/bin/mud-manager, --mcp]
     prefix:  tbamud
+    required: true
     env:
       MUD_HOST:     localhost
       MUD_PORT:     4000
