@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 from boukensha.world.db import WorldDB
 from boukensha.world.identity import signature
+from boukensha.world.pathfind import nearest_unexplored
 
 
 class CompressionHooks:
@@ -73,7 +74,7 @@ class CompressionHooks:
         # Repeat visit (visit_count >= 1): return compact summary
         summary = room.get("summary")
         if not summary:
-            summary = self._generate_summary(room_name, room["visit_count"], exits)
+            summary = self._generate_summary(room["id"], room_name, room["visit_count"], exits)
 
         before_tokens = self._estimate_tokens(result)
         after_tokens = self._estimate_tokens(summary)
@@ -214,13 +215,43 @@ class CompressionHooks:
     def _store_default_summary(self, room_id: str, name: str, exits: list[str]) -> None:
         """Store a default summary for a first-visit room."""
         exits_str = ", ".join(exits[:4]) if exits else "none"
+        # First visit summary is minimal; enhanced on repeat visits with frontier queries
         summary = f"{name}. Exits: {exits_str}."
         self.world_db.update_room_summary(room_id, summary)
 
-    def _generate_summary(self, name: str, visit_count: int, exits: list[str]) -> str:
-        """Generate a compact repeat-visit summary."""
+    def _generate_summary(self, room_id: str, name: str, visit_count: int, exits: list[str]) -> str:
+        """Generate a compact repeat-visit summary with frontier queries.
+
+        Example: "Temple Square (visited 4x). Exits: n, e, s. Unexplored: d, w. Nearest new: 3 moves w."
+        """
         exits_str = ", ".join(exits[:4]) if exits else "none"
-        return f"{name} (visited {visit_count}x). Exits: {exits_str}. Nothing new."
+        summary = f"{name} (visited {visit_count}x). Exits: {exits_str}."
+
+        # Add frontier information if available
+        try:
+            frontier = nearest_unexplored(self.world_db, room_id)
+            if frontier:
+                target_room_id, distance, path, unexplored_direction = frontier
+
+                # List unexplored directions from current room
+                all_exits = self.world_db.get_exits(room_id)
+                unexplored = [d for d, target in all_exits.items() if target is None]
+
+                if unexplored:
+                    unexplored_str = ", ".join(unexplored[:3])
+                    summary += f" Unexplored: {unexplored_str}."
+
+                # Show route to nearest unexplored
+                if distance > 0 and path:
+                    route_str = ", ".join(path[:4])
+                    summary += f" Nearest new: {distance} moves ({route_str})."
+                elif unexplored_direction:
+                    summary += f" Nearest new: 0 moves ({unexplored_direction})."
+        except Exception as e:
+            # If pathfinding fails, just continue with basic summary
+            self._log_event("frontier_query_failed", room_id=room_id, error=str(e))
+
+        return summary
 
     @staticmethod
     def _estimate_tokens(text: Any) -> int:
