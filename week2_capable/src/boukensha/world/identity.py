@@ -5,10 +5,17 @@ to separate same-named rooms. Reconciliation builds a graph where identity is
 probabilistic — confirmed, probable, or ambiguous — updated by traversal.
 """
 
+import re
 from hashlib import sha256
 from typing import List, Optional
 
 from .db import WorldDB
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text."""
+    ansi_pattern = re.compile(r'\x1b\[[0-9;]*m|\[[0-9;]*m')
+    return ansi_pattern.sub('', text)
 
 
 def signature(name: str, exits: List[str], desc_head: str) -> str:
@@ -22,8 +29,12 @@ def signature(name: str, exits: List[str], desc_head: str) -> str:
     Returns:
         16-character hex hash uniquely identifying this room (to high confidence)
     """
+    # Normalize: strip ANSI codes and whitespace for consistent matching
+    clean_name = _strip_ansi(name).strip()
+    clean_desc = _strip_ansi(desc_head).strip()
     exit_str = ",".join(sorted(exits))
-    combined = f"{name}|{exit_str}|{desc_head[:80]}"
+
+    combined = f"{clean_name}|{exit_str}|{clean_desc[:80]}"
     return sha256(combined.encode()).hexdigest()[:16]
 
 
