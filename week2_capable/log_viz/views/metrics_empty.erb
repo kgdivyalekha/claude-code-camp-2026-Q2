@@ -1,0 +1,120 @@
+<div class="empty-state">
+  <h1>📊 Metrics Dashboard</h1>
+  <p>Metrics database not yet available.</p>
+
+  <div class="info-box">
+    <h2>🚀 Quick Start:</h2>
+    <p>To see metrics, you need to run an agent session that will generate events and populate <code>.boukensha/events.db</code>.</p>
+
+    <h3>Steps:</h3>
+    <ol>
+      <li><strong>Run a session:</strong>
+        <pre style="background: #2a2a2a; padding: 1rem; border-radius: 4px; overflow-x: auto;">
+cd week2_capable
+python -m boukensha.run --session demo_run
+        </pre>
+      </li>
+      <li><strong>Or run with MUD integration:</strong>
+        <pre style="background: #2a2a2a; padding: 1rem; border-radius: 4px; overflow-x: auto;">
+python -m boukensha.run --config config.yaml --session live_run
+        </pre>
+      </li>
+      <li><strong>Refresh this page</strong> to see live metrics populate</li>
+    </ol>
+
+    <h2>📈 What Metrics Will Show:</h2>
+    <ul>
+      <li><strong>Token Economy</strong> — breakdown by schema, history, results, output</li>
+      <li><strong>Schema Overhead (M4)</strong> — tool gating effectiveness</li>
+      <li><strong>Cache Effectiveness (M8)</strong> — prompt cache hit rate and cost savings</li>
+      <li><strong>M9 Compression</strong> — repeat-room savings and frontier queries
+        <ul>
+          <li>Compression events logged as <code>phase: "tokens.compressed"</code></li>
+          <li>Contains: before_tokens, after_tokens, saved, visit_count, room_id</li>
+        </ul>
+      </li>
+      <li><strong>Context Compaction (M3)</strong> — compaction events and message drops</li>
+      <li><strong>Tool Usage</strong> — success rates by tool</li>
+      <li><strong>Iteration Analysis</strong> — tokens per turn, context pressure</li>
+      <li><strong>Exploration Progress</strong> — rooms discovered, confidence levels</li>
+      <li><strong>Permissions & Audit (M5)</strong> — allow/deny/ask decisions</li>
+      <li><strong>Recommendations</strong> — automated optimization suggestions</li>
+    </ul>
+
+    <h2>Sample metrics shown:</h2>
+    <ul>
+      <li><strong>Token Economy</strong> — breakdown by schema, history, results</li>
+      <li><strong>Schema Overhead</strong> — M4 tool gating effectiveness</li>
+      <li><strong>Caching</strong> — M8 prompt cache hit rate and savings</li>
+      <li><strong>M9 Compression</strong> — repeat-room savings and frontier queries</li>
+      <li><strong>Iteration Analysis</strong> — context pressure and compaction</li>
+      <li><strong>Exploration Progress</strong> — rooms discovered, confidence levels</li>
+      <li><strong>Tool Usage</strong> — success rates by tool</li>
+      <li><strong>Recommendations</strong> — optimizations suggested</li>
+    </ul>
+  </div>
+
+  <div class="nav-links">
+    <a href="/" class="btn">← Back to Sessions</a>
+  </div>
+</div>
+
+<style>
+  .empty-state {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 2rem auto;
+  }
+
+  .info-box {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+
+  .info-box h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .info-box h2:first-child {
+    margin-top: 0;
+  }
+
+  .info-box ul, .info-box ol {
+    margin: 0.5rem 0 0 2rem;
+    line-height: 1.8;
+  }
+
+  .info-box li {
+    margin-bottom: 0.5rem;
+  }
+
+  code {
+    background: #eee;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: monospace;
+  }
+
+  .nav-links {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #0066cc;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .btn:hover {
+    background: #0052a3;
+  }
+</style>

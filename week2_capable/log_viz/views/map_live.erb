@@ -99,6 +99,9 @@
           <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
             <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B" />
           </marker>
+          <marker id="arrowhead-yellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#FFD700" />
+          </marker>
           <!-- Room gradients for visual depth -->
           <linearGradient id="room-grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:0.9" />
@@ -347,7 +350,7 @@
     if (!rooms || rooms.length === 0 || !svg) return;
 
     // Remove existing player indicators
-    const existingCircles = svg.querySelectorAll('.player-circle, .player-dot, .player-label');
+    const existingCircles = svg.querySelectorAll('.player-circle, .player-dot, .player-label, .player-arrow');
     existingCircles.forEach(el => el.remove());
 
     // Try to find by current_room_id from navigation_log, fall back to first room
@@ -361,6 +364,36 @@
 
     if (currentRoom && currentRoom.id) {
       document.getElementById('player-room').textContent = '📍 at ' + currentRoom.name;
+
+      // Draw special arrows FROM player's current location
+      if (currentRoom.exits && positions[currentRoom.id]) {
+        const playerPos = positions[currentRoom.id];
+        const playerX = playerPos.x * 120 + 60;
+        const playerY = playerPos.y * 120 + 60;
+
+        Object.entries(currentRoom.exits).forEach(([direction, targetId]) => {
+          if (targetId && targetId.trim() !== '' && positions[targetId]) {
+            const targetPos = positions[targetId];
+            const targetX = targetPos.x * 120 + 60;
+            const targetY = targetPos.y * 120 + 60;
+
+            // Draw bright yellow arrow from player location
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            arrow.setAttribute('x1', playerX);
+            arrow.setAttribute('y1', playerY);
+            arrow.setAttribute('x2', targetX);
+            arrow.setAttribute('y2', targetY);
+            arrow.setAttribute('stroke', '#FFD700');
+            arrow.setAttribute('stroke-width', '3.5');
+            arrow.setAttribute('stroke-dasharray', '0');
+            arrow.setAttribute('marker-end', 'url(#arrowhead-yellow)');
+            arrow.setAttribute('opacity', '0.9');
+            arrow.setAttribute('class', 'player-arrow');
+            arrow.setAttribute('filter', 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))');
+            svg.insertBefore(arrow, svg.children[1]);
+          }
+        });
+      }
 
       const playerRoomId = 'room-' + currentRoom.id;
       const playerRoomRect = document.getElementById(playerRoomId);
