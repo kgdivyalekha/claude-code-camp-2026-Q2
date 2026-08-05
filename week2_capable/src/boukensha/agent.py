@@ -1,4 +1,3 @@
-import sys
 import threading
 from typing import Any, Dict, List, Optional
 
@@ -125,14 +124,10 @@ class Agent:
         # M5 integration: if registry is GuardedRegistry, extract actor and policy
         # and pass them to to_tools() for permission-based pruning (M5)
         actor, policy = self._get_actor_and_policy()
-        print(f"[DEBUG] _call_opts: registry type={type(self.registry).__name__}, actor={actor is not None}, policy={policy is not None}", file=sys.stderr)
         if actor is not None and policy is not None:
             # Build tool list with M4 gating + M5 pruning
             tools = self.builder.to_tools(actor=actor, policy=policy)
-            print(f"[DEBUG] tools filtered by M4+M5: {len(tools)} tools", file=sys.stderr)
             opts["tools"] = tools
-        else:
-            print(f"[DEBUG] No filtering applied, using default tools", file=sys.stderr)
 
         return opts
 
