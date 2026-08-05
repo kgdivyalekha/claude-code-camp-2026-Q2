@@ -274,11 +274,14 @@ module LogViz
     private
 
     def parse_exits(exits_raw)
-      return {} unless exits_raw
+      return {} unless exits_raw && exits_raw.to_s.strip != ""
 
       exits_raw.split(",").each_with_object({}) do |pair, acc|
-        direction, target_id = pair.split(":")
-        acc[direction] = target_id
+        parts = pair.split(":")
+        next unless parts.length == 2
+        direction = parts[0].to_s.strip
+        target_id = parts[1].to_s.strip
+        acc[direction] = target_id if direction.length > 0
       end
     end
   end

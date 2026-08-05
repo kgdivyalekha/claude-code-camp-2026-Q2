@@ -577,6 +577,26 @@ module LogViz
       conn.close
     end
 
+    # Reset world.db for a session (clear old data)
+    get "/sessions/:id/map/reset" do
+      id = File.basename(params[:id])
+      world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+
+      if File.exist?(world_db_path)
+        File.delete(world_db_path)
+        $stderr.puts "Deleted world.db: #{world_db_path}"
+      end
+
+      # Recreate empty schema
+      world = WorldDB.new(world_db_path)
+      conn = SQLite3::Database.new(world_db_path)
+      conn.execute("PRAGMA synchronous = FULL")
+      # Let it auto-create on next use
+      conn.close
+
+      redirect "/sessions/#{id}/map"
+    end
+
     # Test route to verify M6 integration is loaded
     get "/test/m6" do
       content_type :json

@@ -10,6 +10,17 @@
       <input type="checkbox" id="auto-refresh" checked style="cursor: pointer; width: 16px; height: 16px;">
       🔄 Auto-refresh
     </label>
+    <button id="reset-button" style="
+      padding: 0.5rem 0.8rem;
+      border: 1px solid rgba(255, 107, 107, 0.5);
+      background: rgba(255, 107, 107, 0.2);
+      color: #FF6B6B;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    " title="Clear map data and start fresh"
+    >🗑️ Reset Map</button>
     <button id="theme-toggle" style="
       padding: 0.5rem 1rem;
       border: 2px solid rgba(255, 107, 107, 0.5);
@@ -79,7 +90,10 @@
       %>
       <svg id="world-map-svg" width="<%= svg_width %>" height="<%= svg_height %>" style="display: block; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); min-width: 100%; min-height: 100%;" data-light-bg="linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)" data-dark-bg="linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%)">
         <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <marker id="arrowhead-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#45B7D1" />
+          </marker>
+          <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
             <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B" />
           </marker>
           <style>
@@ -114,7 +128,7 @@
           </style>
         </defs>
 
-        <!-- Draw connections between rooms (only confirmed connections with target rooms) -->
+        <!-- Draw connections between rooms (confirmed connections with target rooms) -->
         <% @rooms.each do |room| %>
           <% if @positions[room[:id]] %>
             <% from_pos = @positions[room[:id]] %>
@@ -125,7 +139,7 @@
                 <% to_pos = @positions[target_id] %>
                 <% to_x = to_pos[:x] * 120 + 60 %>
                 <% to_y = to_pos[:y] * 120 + 60 %>
-                <line class="map-connection" x1="<%= from_x %>" y1="<%= from_y %>" x2="<%= to_x %>" y2="<%= to_y %>" />
+                <line class="map-connection" x1="<%= from_x %>" y1="<%= from_y %>" x2="<%= to_x %>" y2="<%= to_y %>" marker-end="url(#arrowhead-blue)" />
               <% end %>
             <% end %>
           <% end %>
@@ -144,6 +158,10 @@
             <!-- Room rectangle -->
             <rect class="map-room-rect"
                   id="room-<%= room[:id] %>"
+                  data-room-id="<%= room[:id] %>"
+                  data-room-name="<%= room[:name] %>"
+                  data-room-desc="<%= (room[:description] || room[:summary] || 'No description available') %>"
+                  data-room-visits="<%= room[:visit_count] %>"
                   x="<%= x - 45 %>" y="<%= y - 25 %>"
                   width="90" height="50"
                   rx="8" ry="8"
@@ -151,7 +169,6 @@
                   stroke="<%= is_player ? '#FF6B6B' : color %>"
                   stroke-width="<%= is_player ? '3' : '2' %>"
                   opacity="0.85"
-                  onclick="showRoomInfo('<%= room[:id] %>', '<%= room[:name].gsub(/'/, "\\'") %>', '<%= (room[:description] || room[:summary] || '—').gsub(/'/, "\\'") %>')"
                   style="cursor: pointer;"
             >
               <title><%= room[:name] %></title>
@@ -279,42 +296,59 @@
   // Find and highlight player's current room from navigation_log
   const rooms = <%= @rooms.to_json %>;
   const currentRoomId = <%= @current_room_id.to_json %>;
+  const positions = <%= @positions.to_json %>;
+
   if (rooms.length > 0) {
-    const currentRoom = currentRoomId ? rooms.find(r => r.id === currentRoomId) : null;
+    const currentRoom = currentRoomId ? rooms.find(r => r.id === currentRoomId) : rooms[0];
 
     if (currentRoom) {
       document.getElementById('player-room').textContent = 'at ' + currentRoom.name;
 
       const playerRoomRect = document.getElementById('room-' + currentRoom.id);
       if (playerRoomRect) {
+        // Highlight the room box
         playerRoomRect.setAttribute('stroke', '#FF6B6B');
-        playerRoomRect.setAttribute('stroke-width', '3');
-        playerRoomRect.style.filter = 'drop-shadow(0 0 8px #FF6B6B)';
+        playerRoomRect.setAttribute('stroke-width', '4');
+        playerRoomRect.setAttribute('filter', 'drop-shadow(0 0 12px #FF6B6B)');
+        playerRoomRect.style.opacity = '1.0';
 
-        // Add player indicator
-        const pos = <%= @positions.to_json %>[currentRoom.id];
+        // Add player indicator circle
+        const pos = positions[currentRoom.id];
         if (pos) {
           const x = pos.x * 120 + 60;
           const y = pos.y * 120 + 60;
+
+          // Large outer circle (pulsing effect via CSS)
           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
           circle.setAttribute('cx', x);
           circle.setAttribute('cy', y);
-          circle.setAttribute('r', '50');
+          circle.setAttribute('r', '55');
           circle.setAttribute('fill', 'none');
           circle.setAttribute('stroke', '#FF6B6B');
-          circle.setAttribute('stroke-width', '2');
-          circle.setAttribute('stroke-dasharray', '5,5');
-          circle.setAttribute('opacity', '0.5');
+          circle.setAttribute('stroke-width', '3');
+          circle.setAttribute('stroke-dasharray', '8,4');
+          circle.setAttribute('opacity', '0.6');
+          circle.setAttribute('class', 'player-circle');
           svg.insertBefore(circle, svg.firstChild.nextSibling);
 
+          // Inner solid circle
+          const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          innerCircle.setAttribute('cx', x);
+          innerCircle.setAttribute('cy', y);
+          innerCircle.setAttribute('r', '8');
+          innerCircle.setAttribute('fill', '#FF6B6B');
+          svg.appendChild(innerCircle);
+
+          // Label
           const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           label.setAttribute('x', x);
-          label.setAttribute('y', y - 60);
+          label.setAttribute('y', y - 70);
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('fill', '#FF6B6B');
           label.setAttribute('font-weight', 'bold');
-          label.setAttribute('font-size', '14');
-          label.textContent = '📍 PLAYER';
+          label.setAttribute('font-size', '16');
+          label.setAttribute('filter', 'drop-shadow(0 0 4px rgba(0,0,0,0.8))');
+          label.textContent = '📍 YOU ARE HERE';
           svg.appendChild(label);
         }
       }
@@ -343,6 +377,18 @@
     document.getElementById('room-info-panel').style.display = 'block';
   }
 
+  // Add click handlers to all room rectangles
+  const roomRects = document.querySelectorAll('.map-room-rect');
+  roomRects.forEach(rect => {
+    rect.addEventListener('click', (e) => {
+      const id = rect.getAttribute('data-room-id');
+      const name = rect.getAttribute('data-room-name');
+      const desc = rect.getAttribute('data-room-desc');
+      showRoomInfo(id, name, desc);
+      e.stopPropagation();
+    });
+  });
+
   // Auto-refresh map as agent explores
   const autoRefreshCheckbox = document.getElementById('auto-refresh');
   let refreshInterval;
@@ -369,5 +415,15 @@
   // Start auto-refresh on page load
   if (autoRefreshCheckbox.checked) {
     startAutoRefresh();
+  }
+
+  // Reset button handler
+  const resetButton = document.getElementById('reset-button');
+  if (resetButton) {
+    resetButton.addEventListener('click', () => {
+      if (confirm('⚠️ This will clear all map data. Continue?')) {
+        window.location.href = '/sessions/<%= @session.id %>/map/reset';
+      }
+    });
   }
 </script>
