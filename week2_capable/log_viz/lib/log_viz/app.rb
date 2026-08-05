@@ -457,12 +457,19 @@ module LogViz
 
         # Debug: log exits and connections
         total_exits = @rooms.sum { |r| r[:exits] ? r[:exits].length : 0 }
-        $stderr.puts "DEBUG: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}, total_exits=#{total_exits}"
+        confirmed_connections = @rooms.sum do |r|
+          (r[:exits] || {}).select { |_dir, target| target.to_s.strip != "" }.length
+        end
 
-        # Log first room's exits as sample
+        $stderr.puts "DEBUG MAP: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}"
+        $stderr.puts "DEBUG MAP: total_exits=#{total_exits}, confirmed_connections=#{confirmed_connections}"
+
+        # Log exits data for debugging
         if @rooms.any?
-          first_room = @rooms.first
-          $stderr.puts "DEBUG: first_room=#{first_room[:name]}, exits=#{first_room[:exits].inspect}"
+          @rooms.first(3).each do |room|
+            exits_str = room[:exits].map { |d, t| "#{d}->#{t.to_s.strip.empty? ? 'NULL' : t}" }.join(", ")
+            $stderr.puts "DEBUG MAP ROOM: #{room[:name]} (#{room[:id]}): exits=[#{exits_str}]"
+          end
         end
 
         erb :map_live

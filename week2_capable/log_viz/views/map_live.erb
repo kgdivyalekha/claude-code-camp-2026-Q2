@@ -183,10 +183,9 @@
               <%=  room[:visit_count] %>×
             </text>
 
-            <!-- Direction labels and arrows (for traversed exits) -->
+            <!-- Direction indicators for all exits (traversed and untraversed) -->
             <% room[:exits].each do |direction, target_id| %>
               <% is_traversed = target_id.to_s.strip != "" %>
-              <% next unless is_traversed %>
               <% arrow_offset = 50 %>
               <% dir_map = {
                 'north' => [0, -arrow_offset, 'N'],
@@ -208,13 +207,22 @@
               } %>
               <% if dir_map[direction.downcase] %>
                 <% dx, dy, label = dir_map[direction.downcase] %>
-                <line class="map-arrow"
-                      x1="<%= x %>" y1="<%= y %>"
-                      x2="<%= x + dx*0.6 %>" y2="<%= y + dy*0.6 %>"
-                      marker-end="url(#arrowhead)" />
-                <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="10" fill="var(--accent)" font-weight="bold">
-                  <%= label %>
-                </text>
+                <% if is_traversed %>
+                  <!-- Confirmed exit with arrow line -->
+                  <line class="map-arrow"
+                        x1="<%= x %>" y1="<%= y %>"
+                        x2="<%= x + dx*0.6 %>" y2="<%= y + dy*0.6 %>"
+                        marker-end="url(#arrowhead-red)" stroke="#FF6B6B" />
+                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="10" fill="#FF6B6B" font-weight="bold">
+                    <%= label %>
+                  </text>
+                <% else %>
+                  <!-- Undiscovered exit - just a small indicator dot -->
+                  <circle cx="<%= x + dx*0.35 %>" cy="<%= y + dy*0.35 %>" r="2.5" fill="rgba(255,165,0,0.5)" stroke="rgba(255,165,0,0.8)" stroke-width="0.5" />
+                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="9" fill="rgba(255,165,0,0.7)" font-weight="bold">
+                    <%= label %>?
+                  </text>
+                <% end %>
               <% end %>
             <% end %>
           <% end %>
@@ -377,26 +385,85 @@
     document.getElementById('room-info-panel').style.display = 'block';
   }
 
-  // Add click handlers to all room rectangles
-  const roomRects = document.querySelectorAll('.map-room-rect');
-  roomRects.forEach(rect => {
-    rect.addEventListener('click', (e) => {
-      const id = rect.getAttribute('data-room-id');
-      const name = rect.getAttribute('data-room-name');
-      const desc = rect.getAttribute('data-room-desc');
-      showRoomInfo(id, name, desc);
-      e.stopPropagation();
-    });
-  });
+  // Initial click handlers
+  attachRoomClickHandlers();
 
-  // Auto-refresh map as agent explores
+  // Helper function to attach click handlers to room rectangles
+  function attachRoomClickHandlers() {
+    const roomRects = document.querySelectorAll('.map-room-rect');
+    roomRects.forEach(rect => {
+      rect.removeEventListener('click', handleRoomClick);  // Remove old listener
+      rect.addEventListener('click', handleRoomClick);
+    });
+  }
+
+  function handleRoomClick(e) {
+    const rect = e.target;
+    const id = rect.getAttribute('data-room-id');
+    const name = rect.getAttribute('data-room-name');
+    const desc = rect.getAttribute('data-room-desc');
+    showRoomInfo(id, name, desc);
+    e.stopPropagation();
+  }
+
+  // Auto-refresh map as agent explores (preserve scroll position with AJAX)
   const autoRefreshCheckbox = document.getElementById('auto-refresh');
   let refreshInterval;
+  const mapContainer = document.getElementById('map-container');
 
   function startAutoRefresh() {
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(() => {
-      location.reload();
+      // Save scroll position before refresh
+      if (mapContainer) {
+        sessionStorage.setItem('mapScrollX', mapContainer.scrollLeft);
+        sessionStorage.setItem('mapScrollY', mapContainer.scrollTop);
+      }
+
+      // Use AJAX to avoid full page reload (keeps scroll position)
+      fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const newDoc = parser.parseFromString(html, 'text/html');
+          const newSVG = newDoc.getElementById('world-map-svg');
+          const oldSVG = document.getElementById('world-map-svg');
+
+          if (newSVG && oldSVG) {
+            // Replace the SVG element
+            oldSVG.parentElement.replaceChild(newSVG, oldSVG);
+
+            // Update room count display
+            const newCount = newDoc.getElementById('room-count');
+            const oldCount = document.getElementById('room-count');
+            if (newCount && oldCount) {
+              oldCount.textContent = newCount.textContent;
+            }
+
+            // Update player room display
+            const newPlayer = newDoc.getElementById('player-room');
+            const oldPlayer = document.getElementById('player-room');
+            if (newPlayer && oldPlayer) {
+              oldPlayer.textContent = newPlayer.textContent;
+            }
+
+            // Restore scroll position
+            if (mapContainer) {
+              const x = sessionStorage.getItem('mapScrollX');
+              const y = sessionStorage.getItem('mapScrollY');
+              if (x !== null) mapContainer.scrollLeft = parseInt(x);
+              if (y !== null) mapContainer.scrollTop = parseInt(y);
+            }
+
+            // Re-attach click handlers to new SVG elements
+            attachRoomClickHandlers();
+          }
+        })
+        .catch(err => {
+          console.error('Map refresh error:', err);
+          // Fallback to full reload on error
+          location.reload();
+        });
     }, 3000);  // Refresh every 3 seconds
   }
 
@@ -409,6 +476,16 @@
       startAutoRefresh();
     } else {
       stopAutoRefresh();
+    }
+  });
+
+  // Restore scroll position on initial page load
+  window.addEventListener('load', () => {
+    if (mapContainer) {
+      const x = sessionStorage.getItem('mapScrollX');
+      const y = sessionStorage.getItem('mapScrollY');
+      if (x !== null) mapContainer.scrollLeft = parseInt(x);
+      if (y !== null) mapContainer.scrollTop = parseInt(y);
     }
   });
 
