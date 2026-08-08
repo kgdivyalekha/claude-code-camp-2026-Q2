@@ -38,7 +38,7 @@ class ToolGate:
 
     # Phase → visible categories
     PHASES = {
-        "exploring": {"perception", "movement"},
+        "exploring": {"perception", "movement", "communication", "utility"},  # includes send_raw, practice
         "fighting": {"perception", "movement", "combat"},
         "trading": {"perception", "inventory", "utility"},
         "full": {"perception", "movement", "combat", "communication", "inventory", "magic", "utility"},
