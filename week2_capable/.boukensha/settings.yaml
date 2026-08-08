@@ -29,6 +29,7 @@ tokens:
     - "*__move"
     - "*__check"
     - "*__drink"      # M9: drink water from fountains/containers
+    - "*__practice"   # Practice skills at guildmaster (native tbaMUD command)
 
   # M3: Trim verbose tool descriptions to reduce schema tokens
   trim_descriptions_to: 200  # chars; first sentence always kept
@@ -81,8 +82,8 @@ permissions:
   default: allow
 
   rules:
-    # Exploration phase tools only (M9: added drink for interaction)
-    - allow: ["*__look", "*__examine", "*__check", "*__move", "*__drink"]
+    # Exploration phase tools only (M9: added drink for interaction, practice for training)
+    - allow: ["*__look", "*__examine", "*__check", "*__move", "*__drink", "*__practice"]
 
     # Restrict irreversible commands
     - deny: "*__send_raw"
