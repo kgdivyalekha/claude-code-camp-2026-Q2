@@ -38,7 +38,9 @@ The **guildmaster** is in the Tournament and Practice Yard.
 
 ### Quick Start
 
-The `practice` tool is **built-in and always available** — no configuration needed!
+The `practice` tool is a **native MCP tool from mud_manager** — just like `look`, `examine`, `drink`. 
+
+Simply include it in your task:
 
 ```python
 import boukensha
@@ -48,33 +50,40 @@ result = boukensha.run(
 )
 ```
 
-Just use `practice kick` in your task, just like `look`, `examine`, or `drink fountain`.
+The agent will automatically use: `practice kick`
 
-### Example
+### Requirements
 
-Run the practice skill example:
+The `practice` tool must be enabled in your settings:
 
-```bash
-python3 examples/practice_skill_builtin.py
+```yaml
+# .boukensha/settings.yaml
+tokens:
+  always_visible:
+    - "*__practice"  # Enable practice command
+
+permissions:
+  rules:
+    - allow: ["*__practice"]  # Allow practice skill training
 ```
 
 ### In Your Code
 
-The practice command works naturally:
+Just use it like any other MUD command:
 
 ```python
 import boukensha
 
 result = boukensha.run(
-    task="Go to Tournament Yard and practice kick skill"
+    task="Go to Tournament Yard and practice kick with the guildmaster"
 )
 ```
 
-No special `configure` callbacks needed anymore! The `practice` tool is a **native command** just like:
+The `practice` tool is a **native mud_manager command** just like:
 - `look` - examine your surroundings
 - `examine <object>` - look closely at something
 - `drink fountain` - drink from a fountain
-- `practice kick` - practice a skill ✅ (now built-in!)
+- `practice kick` - practice a skill ✅ (native MCP tool!)
 
 ## Skill Progression
 
@@ -102,34 +111,51 @@ Each practice session takes time in the MUD and may consume movement or action p
 
 ## Implementation Details
 
-### Built-in Tool
+### Native MCP Tool
 
-The `practice` tool is now **registered as a standard built-in tool** in `src/boukensha/tools/standard.py`.
+The `practice` tool is provided **natively by mud_manager** as an MCP tool.
 
-It's automatically available in all boukensha sessions without requiring:
-- Special imports
-- Configure callbacks
-- Custom setup code
+It's defined in `mud_manager/primitives.json`:
+```json
+"practice": {
+  "category": "utility",
+  "description": "List your known skills at a guildmaster, or practice a specific skill.",
+  "args": {
+    "skill": {
+      "type": "string",
+      "required": false,
+      "description": "Skill name to practice (omit to list all)"
+    }
+  }
+}
+```
 
-This makes it a **native command** just like the MCP server tools.
+### Enabling the Tool
+
+To make `practice` available to agents, ensure it's **not filtered out** by token gates:
+
+1. **Add to `always_visible`** in settings.yaml (so it's never filtered)
+2. **Add to permission allow-list** (so it's not denied)
+3. **Add to phase tools** if using phase-based gating (or use always_visible)
 
 ### How It Works
 
-1. Agent calls `practice` tool with skill name
-2. Tool normalizes the skill name (lowercase, trimmed)
-3. Tool returns MUD command format: `practice <skill>`
-4. MUD processes the command and improves skill proficiency
-5. Guildmaster responds with training feedback
+1. Agent calls `practice` tool with optional skill name
+2. mud_manager sends `practice <skill>` to the MUD
+3. MUD's guildmaster processes the command
+4. Skill improves based on current proficiency
+5. Response returned to agent
 
-### Technical Details
+### Command Variations
 
-The tool is defined in `src/boukensha/tools/standard.py::register_standard_tools()`
+```
+practice              # Lists all known skills
+practice kick         # Practice the kick skill
+practice dodge        # Practice the dodge skill
+practice punch        # Practice the punch skill
+```
 
-It automatically:
-- Accepts skill names (kick, punch, dodge, etc.)
-- Normalizes them to lowercase
-- Handles skill aliases (spinning kick → spin kick)
-- Returns the correct MUD command format
+All skill names are case-insensitive.
 
 ## Troubleshooting
 
@@ -156,9 +182,9 @@ If you get lost, use:
 
 | File | Purpose |
 |------|---------|
-| `src/boukensha/tools/standard.py` | Built-in standard tools (includes practice) |
-| `add_practice_tool.py` | Legacy helper (still works for custom configure callbacks) |
-| `examples/practice_skill_builtin.py` | Example showing practice as built-in tool (no setup needed) |
+| `.boukensha/settings.yaml` | Configuration - enables practice in always_visible and permissions |
+| `week0_explore/mud_manager/primitives.json` | Native tool definitions (includes practice) |
+| `add_practice_tool.py` | Legacy helper (for custom configure callbacks, no longer needed) |
 | `PRACTICE_SKILL_GUIDE.md` | This guide |
 
 ## Example Session
@@ -186,18 +212,24 @@ After mastering skills at the guildmaster:
 
 ## Status
 
-✅ **Practice tool is now a built-in standard command!**
+✅ **Practice tool is a native mud_manager MCP tool!**
 
-- No longer requires special configuration
-- Always available, just like `look`, `examine`, `drink`
-- Works as a native tbaMUD command
-- Agent can use it automatically when navigating to the guildmaster
+mud_manager provides `practice` natively in its primitives. The tool was just being filtered out by token gates in settings.yaml.
 
-**To use**: Just include "practice kick" (or any skill) in your task description!
+**Solution**: Enable in your settings:
+```yaml
+tokens:
+  always_visible:
+    - "*__practice"
 
-Example:
+permissions:
+  rules:
+    - allow: ["*__practice"]
+```
+
+**To use**: Include "practice kick" in your task:
 ```
 "Navigate to Tournament Yard and practice kick with the guildmaster"
 ```
 
-The agent will automatically use the built-in `practice` tool.
+The agent will automatically recognize and use the `practice` command, just like `look`, `examine`, `move`, and `drink fountain`.
