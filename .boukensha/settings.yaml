@@ -11,6 +11,45 @@ mud:
   username: queen
   password: password
 
+# ==============================================================================
+# TOKEN ECONOMY & TOOL GATING
+# ==============================================================================
+tokens:
+  gate_tools: true
+
+  # Phase-based tool exposure
+  phases:
+    exploring: [perception, movement, interaction, utility]  # includes send_raw, practice
+    fighting: [perception, movement, combat]
+    trading: [perception, inventory, utility]
+
+  # Tools always visible (foundation to prevent deadlock)
+  always_visible:
+    - "*__look"
+    - "*__move"
+    - "*__check"
+    - "*__drink"
+    - "*__send_raw"   # Escape hatch for arbitrary MUD commands
+
+# ==============================================================================
+# PERMISSIONS & AUDIT
+# ==============================================================================
+permissions:
+  default: allow
+
+  rules:
+    # Allow exploration tools
+    - allow: ["*__look", "*__examine", "*__check", "*__move", "*__drink", "*__send_raw"]
+
+    # Restrict irreversible commands through send_raw
+    - deny: "*__send_raw"
+      when:
+        command: "^\\s*(quit|delete|shutdown|purge)"
+      reason: "irreversible or out-of-character"
+
+# ==============================================================================
+# MCP SERVERS
+# ==============================================================================
 # Used by week1_baseline/ruby/10_standard_tool_library and later steps: the
 # agent owns no tools of its own, so MUD gameplay tools come from spawning the
 # mud-manager daemon as an MCP server. `command` is an absolute path since
