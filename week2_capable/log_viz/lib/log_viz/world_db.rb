@@ -82,6 +82,22 @@ module LogViz
       false
     end
 
+    # Log a movement (for determining current room)
+    def log_movement(session_id:, actor:, turn:, from_room_id:, direction:, to_room_id:, success:)
+      return false unless conn
+
+      at = Time.now.iso8601
+      conn.execute(<<~SQL, [session_id, actor, turn, from_room_id, direction, to_room_id, success, at])
+        INSERT INTO navigation_log (session_id, actor, turn, from_room, direction, to_room, success, at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      SQL
+
+      true
+    rescue SQLite3::Exception => e
+      warn "Failed to log movement: #{e.message}"
+      false
+    end
+
     # Fetch all rooms with their connected exits
     def all_rooms
       return [] unless ready?

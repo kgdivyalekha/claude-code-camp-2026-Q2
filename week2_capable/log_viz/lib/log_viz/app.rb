@@ -8,6 +8,7 @@ require "set"
 require_relative "session"
 require_relative "ansi"
 require_relative "analytics"
+require_relative "metrics"  # M9 token metrics dashboard
 require_relative "audit_db"  # M5 integration
 require_relative "world_db"  # M6 integration
 
@@ -153,8 +154,9 @@ module LogViz
       erb :index
     end
 
-    # Sample data route for M6 testing — must come before generic :id route
-    get "/sessions/20260804T003135Z-9c6c0214/populate-sample-world" do
+    # Sample data route for M6 testing — works with any session ID
+    get "/sessions/:id/populate-sample-world" do
+      session_id = File.basename(params[:id])
       world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
 
       # Delete old empty database
@@ -194,6 +196,17 @@ module LogViz
       4.times { world.visit_room("village") }
       1.times { world.visit_room("bridge") }
 
+      # Populate navigation_log so current room can be determined
+      world.log_movement(
+        session_id: session_id,
+        actor: "test",
+        turn: 1,
+        from_room_id: "tavern",
+        direction: "look",
+        to_room_id: "tavern",
+        success: 1
+      )
+
       world.close
 
       db_size_final = File.size(world_db_path) if File.exist?(world_db_path)
@@ -205,7 +218,7 @@ module LogViz
         db_size_after_schema: db_size_after_schema,
         db_size_final: db_size_final,
         rooms_saved: save_results,
-        redirect_to: "/sessions/20260804T003135Z-9c6c0214/map"
+        redirect_to: "/sessions/#{session_id}/map"
       }.to_json
     end
 
@@ -339,6 +352,28 @@ module LogViz
       @compression_metrics = @analytics.compression_metrics(id, settings.sessions_dir)
 
       erb :tokens
+    end
+
+    # M9 Comprehensive Metrics Dashboard — token economy, caching, M9 compression impact
+    get "/sessions/:id/metrics" do
+      id   = File.basename(params[:id])
+      path = File.join(settings.sessions_dir, "#{id}.jsonl")
+      halt 404, "Session not found: #{id}" unless File.file?(path)
+
+      @session = Session.load(path)
+      db_path = File.expand_path("../.boukensha/events.db", settings.root)
+      @metrics = Metrics.new(db_path)
+
+      unless @metrics.ready?
+        @ready = false
+        return erb :metrics_empty
+      end
+
+      @ready = true
+      @dashboard = @metrics.dashboard_summary(id)
+      @session_id = id
+
+      erb :metrics
     end
 
     # Sessions analytics dashboard — shows all sessions with token breakdown
