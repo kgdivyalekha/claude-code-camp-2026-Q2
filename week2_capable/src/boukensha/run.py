@@ -22,6 +22,7 @@ from .run_dsl import RunDSL
 from .state import config as boukensha_config
 from .tasks.player import Player
 from .tools import mcp as tools_mcp
+from .tools.standard import register_standard_tools
 
 try:
     from .tui import Tui
@@ -265,6 +266,7 @@ def run(
     registry = Registry(ctx)
 
     _register_mcp_servers(registry, cfg)
+    register_standard_tools(registry)
 
     if configure is not None:
         configure(RunDSL(registry))
