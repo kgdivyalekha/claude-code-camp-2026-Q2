@@ -56,26 +56,15 @@ Verifies M5 (permissions and hooks) implementation.
 bash milestone_docs/scripts/verify_m5.sh
 ```
 
-## Testing Scripts
-
-### `test_cost_calculation.rb`
-Tests cost calculation with various token counts and models.
-- Creates test database
-- Validates pricing rates
-- Checks cache token calculations
-
-```bash
-ruby test_cost_calculation.rb
-```
-
-### `test_event_store.py`
-Tests event store implementation.
-- Validates event logging
-- Checks database schema
-- Confirms data persistence
+### `verify_m8.py`
+Verifies M8 (prompt caching) implementation.
+- Validates cache control markers on system message
+- Checks cache control on tool definitions
+- Confirms enable_cache parameter flows through stack
+- Verifies analytics integration
 
 ```bash
-python test_event_store.py
+python verify_m8.py
 ```
 
 ## Utility Scripts
@@ -88,66 +77,6 @@ Measures baseline metrics for a session.
 
 ```bash
 python measure_baseline.py <session_id>
-```
-
-### `load_sessions.py`
-Loads session data into the event store.
-- Imports JSONL session files
-- Processes events
-- Updates database
-
-```bash
-python load_sessions.py
-```
-
-### `analyze_all_sessions.py`
-Analyzes all sessions and generates statistics.
-- Computes aggregate metrics
-- Identifies patterns
-- Generates reports
-
-```bash
-python analyze_all_sessions.py
-```
-
-### `debug_session.py`
-Debugs a specific session.
-- Inspects event details
-- Validates event sequence
-- Shows token breakdowns
-
-```bash
-python debug_session.py <session_id>
-```
-
-### `simulate_live_events.rb`
-Simulates live event stream for testing.
-- Generates test events
-- Streams to database
-- Tests real-time updates
-
-```bash
-ruby simulate_live_events.rb
-```
-
-### `sync_events.py`
-Synchronizes events between session files and database.
-- Loads missing events
-- Updates database
-- Ensures consistency
-
-```bash
-python sync_events.py
-```
-
-### `check_db.py`
-Checks database health and integrity.
-- Validates schema
-- Checks data consistency
-- Reports issues
-
-```bash
-python check_db.py
 ```
 
 ## Running from Different Directories
