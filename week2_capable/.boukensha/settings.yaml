@@ -19,7 +19,7 @@ tokens:
 
   # Phase-based tool exposure
   phases:
-    exploring: [perception, movement, interaction]  # M9: includes drink, examine, interact
+    exploring: [perception, movement, interaction, utility]  # M9: includes drink, examine, interact, practice
     fighting: [perception, movement, combat]
     trading: [perception, inventory, utility]
 
