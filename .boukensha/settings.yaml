@@ -19,7 +19,7 @@ tokens:
 
   # Phase-based tool exposure
   phases:
-    exploring: [perception, movement, interaction, utility]  # includes send_raw, practice
+    exploring: [perception, movement, communication, utility]  # includes send_raw, practice
     fighting: [perception, movement, combat]
     trading: [perception, inventory, utility]
 
