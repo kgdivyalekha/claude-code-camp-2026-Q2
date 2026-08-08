@@ -351,6 +351,9 @@ module LogViz
       @tool_usage = @analytics.tool_usage(id)
       @compression_metrics = @analytics.compression_metrics(id, settings.sessions_dir)
 
+      # Extract tool dispatch information from session entries
+      @tool_dispatch = extract_tool_dispatch(@session.entries)
+
       erb :tokens
     end
 
@@ -484,11 +487,101 @@ module LogViz
 
         @world_available = @world.ready?
         @rooms = @world.all_rooms
-        @room_count = @world.room_count
-        @positions = @world.layout_rooms if @rooms.any?
+        @room_count = @rooms.length
+
+        $stderr.puts "DEBUG: Loaded all #{@rooms.length} rooms from database"
+
+        # Calculate positions using only filtered rooms
+        @positions = {}
+        if @rooms.any?
+          # Use a manual BFS layout with filtered rooms
+          positions = {}
+          queue = [[@rooms[0][:id], 0, 0]]  # Start with first filtered room
+          visited = Set.new([@rooms[0][:id]])
+          room_map = {}
+          @rooms.each { |r| room_map[r[:id]] = r }
+
+          directions = {
+            "north" => [0, -1], "n" => [0, -1],
+            "south" => [0, 1], "s" => [0, 1],
+            "east" => [1, 0], "e" => [1, 0],
+            "west" => [-1, 0], "w" => [-1, 0],
+            "northeast" => [1, -1], "ne" => [1, -1],
+            "northwest" => [-1, -1], "nw" => [-1, -1],
+            "southeast" => [1, 1], "se" => [1, 1],
+            "southwest" => [-1, 1], "sw" => [-1, 1],
+            "up" => [0, -2], "u" => [0, -2],
+            "down" => [0, 2], "d" => [0, 2]
+          }
+
+          while queue.any?
+            room_id, x, y = queue.shift
+            positions[room_id] = { x: x, y: y }
+
+            room = room_map[room_id]
+            next unless room
+
+            (room[:exits] || {}).each do |direction, target_id|
+              next if target_id.nil? || target_id.to_s.strip.empty? || visited.include?(target_id)
+              next unless room_map[target_id]  # Only if target is in filtered rooms
+
+              dx, dy = directions[direction.downcase] || [0, 0]
+              visited.add(target_id)
+              queue.push([target_id, x + dx, y + dy])
+            end
+          end
+
+          # Place any unvisited rooms in a grid
+          unvisited = @rooms.select { |r| !positions.key?(r[:id]) }
+          if unvisited.any?
+            max_x = positions.any? ? positions.values.map { |p| p[:x] }.max : 0
+            max_y = positions.any? ? positions.values.map { |p| p[:y] }.max : 0
+
+            unvisited.each_with_index do |room, idx|
+              col = idx % 5
+              row = idx / 5
+              positions[room[:id]] = { x: max_x + 2 + col, y: max_y + 2 + row }
+            end
+          end
+
+          # Normalize to positive space
+          if positions.any?
+            min_x = positions.values.map { |p| p[:x] }.min
+            min_y = positions.values.map { |p| p[:y] }.min
+            positions.each do |room_id, pos|
+              pos[:x] -= min_x
+              pos[:y] -= min_y
+            end
+          end
+
+          @positions = positions
+        end
+
+        # Deduplicate rooms by name, keeping first occurrence
+        unique_rooms = {}
+        @rooms.each do |room|
+          unique_rooms[room[:name]] ||= room
+        end
+        @rooms_deduped = unique_rooms.values
+
+        # Recalculate positions for deduplicated rooms (5-column flowchart layout)
+        @positions_deduped = {}
+        @rooms_deduped.each_with_index do |room, idx|
+          col = idx % 5
+          row = idx / 5
+          @positions_deduped[room[:id]] = { x: col, y: row }
+        end
 
         # Get the current room from navigation_log (most recent entry)
         @current_room_id = get_current_room_id(id) if @world_available
+
+        # Debug logging
+        $stderr.puts "DEBUG: @current_room_id = #{@current_room_id.inspect}"
+        $stderr.puts "DEBUG: @rooms_deduped IDs: #{@rooms_deduped.map { |r| r[:id] }.inspect[0..200]}..."
+        if @current_room_id
+          matching = @rooms_deduped.find { |r| r[:id] == @current_room_id }
+          $stderr.puts "DEBUG: Current room found in deduped: #{matching ? 'YES' : 'NO'}"
+        end
 
         # Debug: log exits and connections
         total_exits = @rooms.sum { |r| r[:exits] ? r[:exits].length : 0 }
@@ -498,18 +591,107 @@ module LogViz
 
         $stderr.puts "DEBUG MAP: room_count=#{@room_count}, rooms.length=#{@rooms.length}, positions.length=#{@positions.length}, current_room=#{@current_room_id}"
         $stderr.puts "DEBUG MAP: total_exits=#{total_exits}, confirmed_connections=#{confirmed_connections}"
+        $stderr.puts "DEBUG MAP: @positions keys: #{@positions.keys.inspect}"
+        $stderr.puts "DEBUG MAP: Positions hash:"
+        @positions.each { |k, v| $stderr.puts "  #{k} => x=#{v[:x]}, y=#{v[:y]}" }
 
         # Log exits data for debugging
         if @rooms.any?
-          @rooms.first(3).each do |room|
-            exits_str = room[:exits].map { |d, t| "#{d}->#{t.to_s.strip.empty? ? 'NULL' : t}" }.join(", ")
-            $stderr.puts "DEBUG MAP ROOM: #{room[:name]} (#{room[:id]}): exits=[#{exits_str}]"
+          $stderr.puts "DEBUG MAP: All #{@rooms.length} rooms and their exits:"
+          @rooms.each do |room|
+            exits_str = if room[:exits].empty?
+              "(no exits)"
+            else
+              room[:exits].map { |d, t| "#{d}→#{t.to_s.strip.empty? ? '(empty)' : t}" }.join(", ")
+            end
+            confirmed = (room[:exits] || {}).select { |_d, t| t.to_s.strip != "" }.length
+            $stderr.puts "  #{room[:name]} (#{room[:id]}): #{confirmed} confirmed exits: #{exits_str}"
           end
         end
 
-        erb :map_live
+        # Verify connections are bidirectional
+        $stderr.puts "DEBUG MAP: Checking connections:"
+        if @rooms.any?
+          @rooms.each do |room|
+            (room[:exits] || {}).each do |direction, target_id|
+              next if target_id.to_s.strip.empty?
+              target_room = @rooms.find { |r| r[:id] == target_id }
+              if target_room
+                reverse_direction = reverse_dir(direction)
+                has_reverse = target_room[:exits] && target_room[:exits][reverse_direction]
+                status = has_reverse ? "✓" : "✗"
+                $stderr.puts "  #{status} #{room[:name]} --#{direction}→ #{target_room[:name]} (reverse: #{reverse_direction}=#{has_reverse ? target_id : 'missing'})"
+              else
+                $stderr.puts "  ✗ #{room[:name]} --#{direction}→ #{target_id} (target not found in rooms!)"
+              end
+            end
+          end
+        end
+
+        erb :map_flowchart
       rescue => e
         halt 500, "Error loading world map: #{e.message}\n#{e.backtrace.join("\n")}"
+      end
+    end
+
+    get "/sessions/:id/map-flowchart" do
+      begin
+        id = File.basename(params[:id])
+        path = File.join(settings.sessions_dir, "#{id}.jsonl")
+        halt 404, "Session not found: #{id}" unless File.file?(path)
+
+        @session = Session.load(path)
+
+        # Load world.db (auto-create if missing)
+        world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+        @world = WorldDB.new(world_db_path)
+
+        ensure_world_db_schema(@world)
+
+        @world_available = @world.ready?
+        @rooms = @world.all_rooms
+        @room_count = @rooms.length
+
+        # Calculate positions for flowchart
+        @positions = {}
+        if @rooms.any?
+          positions = {}
+          col = 0
+          row = 0
+          @rooms.each_with_index do |room, idx|
+            positions[room[:id]] = { x: col, y: row }
+            col += 1
+            if col >= 5
+              col = 0
+              row += 1
+            end
+          end
+          @positions = positions
+        end
+
+        # Get current room
+        @current_room_id = get_current_room_id(id) if @world_available
+
+        erb :map_flowchart
+      rescue => e
+        halt 500, "Error loading flowchart map: #{e.message}\n#{e.backtrace.join("\n")}"
+      end
+    end
+
+    # Helper: get reverse direction for compass directions
+    def reverse_dir(direction)
+      case direction.to_s.downcase
+      when "north", "n" then "south"
+      when "south", "s" then "north"
+      when "east", "e" then "west"
+      when "west", "w" then "east"
+      when "northeast", "ne" then "southwest"
+      when "northwest", "nw" then "southeast"
+      when "southeast", "se" then "northwest"
+      when "southwest", "sw" then "northeast"
+      when "up", "u" then "down"
+      when "down", "d" then "up"
+      else direction
       end
     end
 
@@ -521,10 +703,15 @@ module LogViz
       conn = SQLite3::Database.new(db_path)
       conn.results_as_hash = true
 
-      # Get the most recent to_room from navigation_log for this session
+      # Try to get the most recent to_room from navigation_log for this session
       result = conn.execute(
         "SELECT to_room FROM navigation_log WHERE session_id = ? AND to_room IS NOT NULL ORDER BY id DESC LIMIT 1",
         [session_id]
+      ).first
+
+      # If not found for this session, get the most recent one overall (for testing)
+      result ||= conn.execute(
+        "SELECT to_room FROM navigation_log WHERE to_room IS NOT NULL ORDER BY id DESC LIMIT 1"
       ).first
 
       conn.close
@@ -533,6 +720,27 @@ module LogViz
     rescue => e
       $stderr.puts "Error getting current room: #{e.message}"
       nil
+    end
+
+    # Extract tool dispatch information from session entries
+    private def extract_tool_dispatch(entries)
+      tool_dispatch = {}
+      current_turn = 0
+
+      entries.each do |entry|
+        if entry.type == :user
+          current_turn = entry.turn
+          tool_dispatch[current_turn] ||= { tools: [], tools_count: 0 }
+        elsif entry.type == :tool
+          if current_turn > 0
+            tool_dispatch[current_turn] ||= { tools: [], tools_count: 0 }
+            tool_dispatch[current_turn][:tools] << entry.tool_name
+            tool_dispatch[current_turn][:tools_count] = tool_dispatch[current_turn][:tools].length
+          end
+        end
+      end
+
+      tool_dispatch
     end
 
     # Ensure world.db schema exists (helper for map route)
@@ -686,6 +894,40 @@ module LogViz
       conn.close
 
       redirect "/sessions/#{id}/map"
+    end
+
+    get "/sessions/:id/world-db-check" do
+      id = File.basename(params[:id])
+      world_db_path = File.expand_path("../.boukensha/world.db", settings.root)
+
+      unless File.exist?(world_db_path)
+        return "<h2>ERROR: world.db not found at #{world_db_path}</h2>"
+      end
+
+      conn = SQLite3::Database.new(world_db_path)
+      conn.results_as_hash = true
+
+      rooms_count = conn.execute("SELECT COUNT(*) as cnt FROM rooms").first["cnt"]
+      exits_count = conn.execute("SELECT COUNT(*) as cnt FROM exits").first["cnt"]
+
+      rooms = conn.execute("SELECT id, name FROM rooms ORDER BY id")
+      exits = conn.execute("SELECT room_id, direction, target_room_id FROM exits ORDER BY room_id, direction")
+
+      html = "<h1>World DB Check</h1>"
+      html += "<p><strong>Rooms: #{rooms_count}</strong> | <strong>Exits: #{exits_count}</strong></p>"
+
+      html += "<h2>Rooms</h2><table border='1' cellpadding='5' style='border-collapse:collapse'>"
+      html += "<tr style='background:#ddd'><th>ID</th><th>Name</th></tr>"
+      rooms.each { |r| html += "<tr><td>#{r['id']}</td><td>#{r['name']}</td></tr>" }
+      html += "</table>"
+
+      html += "<h2>Exits</h2><table border='1' cellpadding='5' style='border-collapse:collapse'>"
+      html += "<tr style='background:#ddd'><th>From Room</th><th>Direction</th><th>To Room</th></tr>"
+      exits.each { |e| html += "<tr><td>#{e['room_id']}</td><td><strong>#{e['direction']}</strong></td><td>#{e['target_room_id']}</td></tr>" }
+      html += "</table>"
+
+      conn.close
+      html
     end
 
     # Detect duplicate rooms (same name, likely same location)

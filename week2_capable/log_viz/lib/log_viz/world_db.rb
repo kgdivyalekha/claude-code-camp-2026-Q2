@@ -108,8 +108,7 @@ module LogViz
           r.confidence, r.visit_count, r.first_seen, r.last_seen,
           r.discovered_by, GROUP_CONCAT(e.direction || ':' || COALESCE(e.target_room_id, '')) as exits_raw
         FROM rooms r
-        LEFT JOIN exits e ON r.id = e.room_id
-        WHERE e.blocked_reason IS NULL
+        LEFT JOIN exits e ON r.id = e.room_id AND e.blocked_reason IS NULL
         GROUP BY r.id
         ORDER BY r.last_seen DESC
       SQL
@@ -126,7 +125,7 @@ module LogViz
           first_seen: row["first_seen"],
           last_seen: row["last_seen"],
           discovered_by: row["discovered_by"],
-          exits: parse_exits(row["exits_raw"])
+          exits: parse_exits(row["exits_raw"])  # Returns simple hash: {direction => target_id_string}
         }
       end
     rescue SQLite3::Exception => e
@@ -240,13 +239,12 @@ module LogViz
         room_id, x, y = queue.shift
         positions[room_id] = { x: x, y: y }
 
-        room = get_room(room_id)
+        room = room_map[room_id]  # Use room_map instead of get_room for consistency with all_rooms format
         next unless room
 
-        room[:exits].each do |direction, exit_info|
-          # exit_info is {target: id, confidence: ..., blocked: ...}
-          target_id = exit_info.is_a?(Hash) ? exit_info[:target] : exit_info
-          next if target_id.nil? || visited.include?(target_id)
+        (room[:exits] || {}).each do |direction, target_id|
+          # target_id is a string from parse_exits, or empty string for unexplored exits
+          next if target_id.nil? || target_id.to_s.strip.empty? || visited.include?(target_id)
 
           dx, dy = directions[direction.downcase] || [0, 0]
           new_x = x + dx

@@ -262,7 +262,25 @@
       "Bash(ruby cleanup_duplicates.rb)",
       "Bash(grep -n \"def.*map\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\system\\\\claude-code-camp-2026-Q2\\\\week2_capable\\\\log_viz\\\\lib\\\\log_viz\\\\app.rb\")",
       "Bash(grep *)",
-      "Bash(wc *)"
+      "Bash(wc *)",
+      "Bash(python test/test_m9_pathfinding.py)",
+      "Bash(python populate_world_from_session.py .boukensha/sessions/20260805T211138Z-6117100a.jsonl .boukensha/world.db)",
+      "Bash(python *)",
+      "Bash(./venv/bin/python3 *)",
+      "Bash(ruby *)",
+      "Bash(pip install *)",
+      "Bash(boukensha)",
+      "Bash(/usr/bin/python3 *)",
+      "Bash(sudo apt update)",
+      "Bash(sudo apt install -y python3 python3-venv python3-pip)",
+      "Bash(../venv/bin/python3 *)",
+      "Bash(git clean *)",
+      "Bash(git checkout *)",
+      "Bash(docker compose *)",
+      "Bash(move east *)",
+      "Bash(bash -c \"exec 3<>/dev/tcp/localhost/4000 && echo 'Connected' >&3 && head -c 100 <&3; exec 3>&-\")",
+      "Bash(bash -c '\nexec 3<>/dev/tcp/localhost/4000\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\necho \"queen\" >&3\nread -t 2 line <&3 && echo \"$line\"\necho \"password\" >&3\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nexec 3>&-\n')",
+      "Bash(cd \\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\system\\\\\\\\claude-code-camp-2026-Q2\\\\\\\\week2_capable)"
     ]
   }
 }

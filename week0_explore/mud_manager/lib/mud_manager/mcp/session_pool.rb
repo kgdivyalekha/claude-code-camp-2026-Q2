@@ -19,7 +19,7 @@ module MudManager
     class SessionPool
       Entry = Struct.new(:session, :config, keyword_init: true)
 
-      def initialize(default_config: nil, timeout: 30.0)
+      def initialize(default_config: nil, timeout: 60.0)
         @default_config = default_config || Config.resolve
         @timeout        = timeout
         @entries        = {}

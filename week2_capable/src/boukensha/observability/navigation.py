@@ -62,7 +62,8 @@ class NavigationTracker:
             return room_id
         except ValueError as e:
             # Parse failure — log and continue
-            print(f"[boukensha] warning: look parse failed: {e}", file=sys.stderr)
+            print(f"[nav] look parse FAILED: {e}", file=sys.stderr)
+            print(f"[nav] result preview: {result[:200] if isinstance(result, str) else result}", file=sys.stderr)
             return None
 
     def on_move_result(
@@ -133,8 +134,10 @@ class NavigationTracker:
                 )
 
             return to_room_id
-        except ValueError:
+        except ValueError as e:
             # Could not parse new room; mark exit as untraversed but not blocked
+            print(f"[nav] move parse FAILED: {e} (direction={direction})", file=sys.stderr)
+            print(f"[nav] result preview: {result[:200] if isinstance(result, str) else result}", file=sys.stderr)
             if self.session_id:
                 self.world_db.log_movement(
                     session_id=self.session_id,

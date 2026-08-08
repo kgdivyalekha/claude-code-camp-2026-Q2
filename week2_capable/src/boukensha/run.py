@@ -150,22 +150,27 @@ def _wrap_with_guarded_registry(registry: Registry, session_id: str, logger: Log
 
                 def _navigation_hook(actor, name, args, result):
                     """Adapter to let NavigationTracker observe tool results."""
-                    # Strip MCP prefix (e.g., "tbamud__look" -> "look")
-                    base_name = name.split("__", 1)[-1] if "__" in name else name
+                    try:
+                        # Strip MCP prefix (e.g., "tbamud__look" -> "look")
+                        base_name = name.split("__", 1)[-1] if "__" in name else name
 
-                    if base_name == "look":
-                        nav_tracker.on_look_result(result, actor=actor.id if actor else None)
-                    elif base_name == "move":
-                        # move args should have direction; current room should be cached
-                        direction = args.get("direction", "unknown")
-                        current = nav_tracker.get_current_room()
-                        if current:
-                            nav_tracker.on_move_result(
-                                result,
-                                from_room_id=current,
-                                direction=direction,
-                                actor=actor.id if actor else None,
-                            )
+                        if base_name == "look":
+                            print(f"[nav] look result: {len(result) if isinstance(result, str) else '?'} chars", file=sys.stderr)
+                            nav_tracker.on_look_result(result, actor=actor.id if actor else None)
+                        elif base_name == "move":
+                            # move args should have direction; current room should be cached
+                            direction = args.get("direction", "unknown")
+                            current = nav_tracker.get_current_room()
+                            print(f"[nav] move {direction}: current room={current}", file=sys.stderr)
+                            if current:
+                                nav_tracker.on_move_result(
+                                    result,
+                                    from_room_id=current,
+                                    direction=direction,
+                                    actor=actor.id if actor else None,
+                                )
+                    except Exception as e:
+                        print(f"[nav] hook error: {e}", file=sys.stderr)
                     return None  # Don't rewrite result
 
                 # Register with low priority (run first, before compression)

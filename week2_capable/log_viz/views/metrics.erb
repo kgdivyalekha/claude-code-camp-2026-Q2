@@ -1,0 +1,726 @@
+<div class="metrics-container">
+  <h1>📊 Metrics Dashboard</h1>
+  <p class="session-id">Session: <code><%= @session_id %></code></p>
+
+  <!-- TOKEN BREAKDOWN -->
+  <section class="metrics-section">
+    <h2>Token Economy Overview</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total Tokens</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:token_breakdown][:total_tokens] || 0) %></div>
+        <div class="metric-detail">
+          Input: <%= fmt_tokens(@dashboard[:token_breakdown][:total_input_tokens] || 0) %> |
+          Output: <%= fmt_tokens(@dashboard[:token_breakdown][:output_tokens] || 0) %>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Schema Overhead</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:token_breakdown][:schema_tokens] || 0) %></div>
+        <div class="metric-detail">
+          <%= pct_raw(@dashboard[:token_breakdown][:schema_tokens], @dashboard[:token_breakdown][:total_input_tokens]) %>% of input
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">History</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:token_breakdown][:history_tokens] || 0) %></div>
+        <div class="metric-detail">
+          <%= pct_raw(@dashboard[:token_breakdown][:history_tokens], @dashboard[:token_breakdown][:total_input_tokens]) %>% of input
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Results</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:token_breakdown][:result_tokens] || 0) %></div>
+        <div class="metric-detail">
+          <%= pct_raw(@dashboard[:token_breakdown][:result_tokens], @dashboard[:token_breakdown][:total_input_tokens]) %>% of input
+        </div>
+      </div>
+    </div>
+
+    <!-- Stacked bar chart -->
+    <div class="token-breakdown-chart">
+      <div class="chart-title">Token Distribution</div>
+      <div class="stacked-bar">
+        <%
+          total = @dashboard[:token_breakdown][:total_input_tokens] || 1
+          schema_pct = (@dashboard[:token_breakdown][:schema_tokens].to_f / total * 100).round(1)
+          history_pct = (@dashboard[:token_breakdown][:history_tokens].to_f / total * 100).round(1)
+          result_pct = (@dashboard[:token_breakdown][:result_tokens].to_f / total * 100).round(1)
+        %>
+        <div class="bar-segment schema" style="width: <%= schema_pct %>%;" title="Schema: <%= schema_pct %>%">
+          <span class="label-small"><%= schema_pct > 5 ? schema_pct : '' %>%</span>
+        </div>
+        <div class="bar-segment history" style="width: <%= history_pct %>%;" title="History: <%= history_pct %>%">
+          <span class="label-small"><%= history_pct > 5 ? history_pct : '' %>%</span>
+        </div>
+        <div class="bar-segment results" style="width: <%= result_pct %>%;" title="Results: <%= result_pct %>%">
+          <span class="label-small"><%= result_pct > 5 ? result_pct : '' %>%</span>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="legend-box schema"></span> Schema</span>
+        <span><span class="legend-box history"></span> History</span>
+        <span><span class="legend-box results"></span> Results</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCHEMA OVERHEAD -->
+  <section class="metrics-section">
+    <h2>Schema Overhead (M4: Tool Gating)</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Avg Tools Per Call</div>
+        <div class="metric-value"><%= @dashboard[:schema_overhead][:avg_tools_per_call] %></div>
+        <div class="metric-detail">
+          Total schemas: <%= @dashboard[:schema_overhead][:total_tool_schemas] %>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Schema Tokens Estimated</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:schema_overhead][:schema_tokens_estimated] || 0) %></div>
+        <div class="metric-detail">
+          ~<%= @dashboard[:schema_overhead][:avg_schema_cost_per_iteration] %> tokens/iteration
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Gating Events</div>
+        <div class="metric-value"><%= @dashboard[:schema_overhead][:gating_events] %></div>
+        <div class="metric-detail">
+          Phase transitions with tool gating
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Calls Tracked</div>
+        <div class="metric-value"><%= @dashboard[:schema_overhead][:calls_with_tools] %></div>
+        <div class="metric-detail">
+          API calls with tools_sent metric
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>💡 Insight:</strong> With gating, agents expose ~<%= @dashboard[:schema_overhead][:avg_tools_per_call].to_i %> tools instead of 26 (73% reduction).
+      Over <%= @dashboard[:schema_overhead][:calls_with_tools] %> calls, this saves ~<%= fmt_tokens((@dashboard[:schema_overhead][:schema_tokens_estimated].to_i * 0.73).to_i) %> tokens.
+    </div>
+  </section>
+
+  <!-- CACHING EFFECTIVENESS -->
+  <section class="metrics-section">
+    <h2>Prompt Caching (M8: Cache Control)</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Cache Hit Rate</div>
+        <div class="metric-value"><%= @dashboard[:cache_effectiveness][:cache_hit_rate_pct] %>%</div>
+        <div class="metric-detail">
+          <%= @dashboard[:cache_effectiveness][:cache_hits] %> / <%= @dashboard[:cache_effectiveness][:total_calls] %> calls
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Cache Read Tokens</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:cache_effectiveness][:cache_read_tokens] || 0) %></div>
+        <div class="metric-detail">
+          <%= pct_raw(@dashboard[:cache_effectiveness][:cache_read_tokens], (@dashboard[:cache_effectiveness][:cache_read_tokens].to_i + @dashboard[:token_breakdown][:uncached_input_tokens].to_i)) %>% of total input
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Cache Write Tokens</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:cache_effectiveness][:cache_write_tokens] || 0) %></div>
+        <div class="metric-detail">
+          Cache creation cost (1.25x)
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Cost Savings (Cache)</div>
+        <div class="metric-value"><%= fmt_cost(@dashboard[:cache_effectiveness][:cache_cost_savings_usd] || 0) %></div>
+        <div class="metric-detail">
+          At 90% discount rate on reads
+        </div>
+      </div>
+    </div>
+
+    <!-- Cache hit rate visualization -->
+    <div class="progress-metric">
+      <div class="metric-label">Cache Hit Distribution</div>
+      <div class="horizontal-bar">
+        <div class="bar-segment cache-hit" style="width: <%= @dashboard[:cache_effectiveness][:cache_hit_rate_pct] %>%;">
+          <%= @dashboard[:cache_effectiveness][:cache_hit_rate_pct] %>%
+        </div>
+        <div class="bar-segment cache-miss" style="width: <%= 100 - @dashboard[:cache_effectiveness][:cache_hit_rate_pct] %>%;"></div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>💡 Insight:</strong> Cached input is <%= fmt_tokens(@dashboard[:cache_effectiveness][:cache_read_tokens] || 0) %> tokens
+      — that's <%= fmt_tokens((@dashboard[:cache_effectiveness][:cache_read_tokens].to_i * 0.9).to_i) %> tokens saved vs uncached.
+    </div>
+  </section>
+
+  <!-- M9 COMPRESSION & FRONTIER QUERIES -->
+  <section class="metrics-section">
+    <h2>M9: Compression & Frontier Queries</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Compression Events</div>
+        <div class="metric-value"><%= @dashboard[:m9_compression][:compression_events] %></div>
+        <div class="metric-detail">
+          Repeat rooms compressed
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Tokens Saved</div>
+        <div class="metric-value"><%= fmt_tokens(@dashboard[:m9_compression][:tokens_saved] || 0) %></div>
+        <div class="metric-detail">
+          Avg <%= @dashboard[:m9_compression][:avg_savings_per_repeat] %> tokens/repeat
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Compression Ratio</div>
+        <div class="metric-value"><%= @dashboard[:m9_compression][:compression_ratio_pct] %>%</div>
+        <div class="metric-detail">
+          Before: <%= fmt_tokens(@dashboard[:m9_compression][:before_compression]) %>
+          → After: <%= fmt_tokens(@dashboard[:m9_compression][:after_compression]) %>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Repeat Visits</div>
+        <div class="metric-value"><%= @dashboard[:m9_compression][:total_repeat_visits] %></div>
+        <div class="metric-detail">
+          Rooms visited multiple times
+        </div>
+      </div>
+    </div>
+
+    <!-- Compression effectiveness -->
+    <div class="progress-metric">
+      <div class="metric-label">Compression Effectiveness</div>
+      <div class="horizontal-bar">
+        <div class="bar-segment saved" style="width: <%= @dashboard[:m9_compression][:compression_ratio_pct] %>%;">
+          <%= @dashboard[:m9_compression][:compression_ratio_pct] %>% saved
+        </div>
+        <div class="bar-segment unsaved" style="width: <%= 100 - @dashboard[:m9_compression][:compression_ratio_pct] %>%;"></div>
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <strong>💡 Impact:</strong> M9 compression saved <%= fmt_tokens(@dashboard[:m9_compression][:tokens_saved]) %> tokens
+      across <%= @dashboard[:m9_compression][:compression_events] %> repeat visits.
+      Without M9, those <%= fmt_tokens(@dashboard[:m9_compression][:before_compression]) %> tokens would have been sent again.
+    </div>
+  </section>
+
+  <!-- TOOL USAGE -->
+  <section class="metrics-section">
+    <h2>Tool Usage by Category</h2>
+    <table class="tool-usage-table">
+      <thead>
+        <tr>
+          <th>Tool</th>
+          <th>Calls</th>
+          <th>Success Rate</th>
+          <th>Success / Failed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @dashboard[:tool_usage].each do |tool| %>
+          <tr>
+            <td><code><%= tool[:tool] %></code></td>
+            <td><%= tool[:count] %></td>
+            <td>
+              <div class="success-bar">
+                <div class="success-fill" style="width: <%= tool[:success_rate_pct] %>%;"></div>
+                <span><%= tool[:success_rate_pct] %>%</span>
+              </div>
+            </td>
+            <td><%= tool[:successful] %> / <%= tool[:failed] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ITERATIONS & COMPACTION -->
+  <section class="metrics-section">
+    <h2>Iteration & Compaction Analysis</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Compaction Events</div>
+        <div class="metric-value"><%= @dashboard[:compaction][:compaction_events] %></div>
+        <div class="metric-detail">
+          Total context compactions triggered
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Avg Messages/Compact</div>
+        <div class="metric-value"><%= @dashboard[:compaction][:avg_messages_per_compaction] %></div>
+        <div class="metric-detail">
+          <%= @dashboard[:compaction][:total_messages_dropped] %> total dropped
+        </div>
+      </div>
+    </div>
+
+    <!-- Iterations per turn sparkline -->
+    <div class="chart-container">
+      <div class="chart-title">Iterations Per Turn</div>
+      <table class="iterations-table">
+        <thead>
+          <tr>
+            <th>Turn</th>
+            <th>Iterations</th>
+            <th>Input Tokens</th>
+            <th>Output Tokens</th>
+            <th>Cache Read</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @dashboard[:iterations].last(10).each do |row| %>
+            <tr>
+              <td><%= row["turn"] %></td>
+              <td><%= row["iterations"] %></td>
+              <td><%= fmt_tokens(row["input_tokens"]) %></td>
+              <td><%= fmt_tokens(row["output_tokens"]) %></td>
+              <td><%= fmt_tokens(row["cache_read_tokens"]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight-box">
+      <strong>💡 Insight:</strong> Context compaction fired <%= @dashboard[:compaction][:compaction_events] %> times,
+      dropping <%= @dashboard[:compaction][:total_messages_dropped] %> messages. Higher iteration counts = more API calls.
+    </div>
+  </section>
+
+  <!-- EXPLORATION PROGRESS -->
+  <section class="metrics-section">
+    <h2>World Map Discovery (M6: World Memory)</h2>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Rooms Discovered</div>
+        <div class="metric-value"><%= @dashboard[:exploration][:total_rooms] %></div>
+        <div class="metric-detail">
+          Unique rooms in world.db
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Confirmed Rooms</div>
+        <div class="metric-value"><%= @dashboard[:exploration][:confirmed] %></div>
+        <div class="metric-detail">
+          <%= @dashboard[:exploration][:confirmed_pct] %>% of total
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Probable Rooms</div>
+        <div class="metric-value"><%= @dashboard[:exploration][:probable] %></div>
+        <div class="metric-detail">
+          Signature matched, not yet verified
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Ambiguous Rooms</div>
+        <div class="metric-value"><%= @dashboard[:exploration][:ambiguous] %></div>
+        <div class="metric-detail">
+          Conflicting signatures
+        </div>
+      </div>
+    </div>
+
+    <!-- Room discovery progress -->
+    <div class="progress-metric">
+      <div class="metric-label">Room Confidence Distribution</div>
+      <div class="horizontal-bar">
+        <%
+          total = @dashboard[:exploration][:total_rooms] || 1
+          confirmed_pct = (@dashboard[:exploration][:confirmed].to_f / total * 100).round(1)
+          probable_pct = (@dashboard[:exploration][:probable].to_f / total * 100).round(1)
+          ambiguous_pct = (@dashboard[:exploration][:ambiguous].to_f / total * 100).round(1)
+        %>
+        <div class="bar-segment confirmed" style="width: <%= confirmed_pct %>%;" title="Confirmed: <%= confirmed_pct %>%">
+          <%= confirmed_pct > 5 ? confirmed_pct : '' %>%
+        </div>
+        <div class="bar-segment probable" style="width: <%= probable_pct %>%;" title="Probable: <%= probable_pct %>%">
+          <%= probable_pct > 5 ? probable_pct : '' %>%
+        </div>
+        <div class="bar-segment ambiguous" style="width: <%= ambiguous_pct %>%;" title="Ambiguous: <%= ambiguous_pct %>%">
+          <%= ambiguous_pct > 5 ? ambiguous_pct : '' %>%
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-legend">
+      <span><span class="legend-box confirmed"></span> Confirmed (round-trip verified)</span>
+      <span><span class="legend-box probable"></span> Probable (signature matched)</span>
+      <span><span class="legend-box ambiguous"></span> Ambiguous (conflicting)</span>
+    </div>
+  </section>
+
+  <!-- PERMISSIONS & AUDIT -->
+  <section class="metrics-section">
+    <h2>Permissions & Audit (M5: Control Plane)</h2>
+    <div class="metrics-grid">
+      <% @dashboard[:permissions].each do |verdict, data| %>
+        <div class="metric-card">
+          <div class="metric-label"><%= verdict.capitalize %></div>
+          <div class="metric-value"><%= data[:count] %></div>
+          <div class="metric-detail">
+            <%= data[:unique_rules] %> unique rules
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- SUMMARY & RECOMMENDATIONS -->
+  <section class="metrics-section summary-section">
+    <h2>📈 Summary & Recommendations</h2>
+    <div class="recommendations">
+      <%
+        schema_pct = ((@dashboard[:token_breakdown][:schema_tokens].to_f / @dashboard[:token_breakdown][:total_input_tokens]) * 100).round(1) rescue 0
+        cache_hit_pct = @dashboard[:cache_effectiveness][:cache_hit_rate_pct]
+        m9_saved = @dashboard[:m9_compression][:tokens_saved].to_i
+      %>
+
+      <div class="rec-item">
+        <strong>Schema Overhead: <%= schema_pct %>%</strong><br>
+        <% if schema_pct > 25 %>
+          ⚠️ Schema is high. Consider enabling tool gating by phase (M4).
+          Reducing visible tools from 26 to ~7 during exploration saves ~73%.
+        <% elsif schema_pct > 15 %>
+          🟡 Schema is moderate. Tool gating is helping but could go further.
+        <% else %>
+          ✅ Schema overhead is well-managed. Gating is working effectively.
+        <% end %>
+      </div>
+
+      <div class="rec-item">
+        <strong>Cache Hit Rate: <%= cache_hit_pct %>%</strong><br>
+        <% if cache_hit_pct > 60 %>
+          ✅ Excellent cache utilization! Stable tool definitions across many calls.
+        <% elsif cache_hit_pct > 30 %>
+          🟡 Moderate cache hits. Phase transitions invalidate cache. Consider longer phase stability.
+        <% else %>
+          ⚠️ Low cache hit rate. Cache writes may be costing more than reads save. Profile phase transitions.
+        <% end %>
+      </div>
+
+      <div class="rec-item">
+        <strong>M9 Compression Savings: <%= fmt_tokens(m9_saved) %> tokens</strong><br>
+        <% if m9_saved > 5000 %>
+          ✅ Excellent! Repeat-room compression is saving significant tokens.
+          <%= @dashboard[:m9_compression][:compression_events] %> rooms compressed,
+          avg <%= @dashboard[:m9_compression][:avg_savings_per_repeat] %> tokens each.
+        <% elsif m9_saved > 0 %>
+          🟡 Some compression benefit. Agent may be exploring new territory frequently.
+        <% else %>
+          📊 No compression events yet. Compression happens on repeat room visits.
+        <% end %>
+      </div>
+
+      <div class="rec-item">
+        <strong>Context Compaction: <%= @dashboard[:compaction][:compaction_events] %> events</strong><br>
+        <% if @dashboard[:compaction][:compaction_events] > 5 %>
+          ⚠️ Frequent compaction suggests high context pressure.
+          Consider reducing messages kept or shortening turns.
+        <% elsif @dashboard[:compaction][:compaction_events] > 0 %>
+          🟡 Some compaction. Watch if it increases as session grows.
+        <% else %>
+          ✅ No compaction needed. Agent staying well within context window.
+        <% end %>
+      </div>
+
+      <div class="rec-item">
+        <strong>Tokens per Room Discovered</strong><br>
+        <%
+          rooms = @dashboard[:exploration][:total_rooms].to_i
+          total_tokens = @dashboard[:token_breakdown][:total_tokens].to_i
+          tokens_per_room = rooms > 0 ? total_tokens / rooms : 0
+        %>
+        Approx <%= tokens_per_room %> tokens/room discovered.
+        <% if tokens_per_room < 200 %>
+          ✅ Excellent efficiency! Agent exploring with purpose.
+        <% elsif tokens_per_room < 400 %>
+          🟡 Moderate efficiency. Room for improvement via M9 pathfinding.
+        <% else %>
+          ⚠️ High token cost per room. Check for re-exploration or wandering.
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <!-- Navigation -->
+  <div class="nav-links">
+    <a href="/sessions/<%= @session_id %>" class="btn">← Back to Session</a>
+    <a href="/sessions/<%= @session_id %>/tokens" class="btn">Tokens View</a>
+    <a href="/sessions/<%= @session_id %>/map" class="btn">Map View</a>
+    <a href="/" class="btn">All Sessions</a>
+  </div>
+</div>
+
+<style>
+  .metrics-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .metrics-container h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .session-id {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  .metrics-section {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .metrics-section h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 0.5rem;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .metric-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .metric-label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .metric-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #0066cc;
+    margin-bottom: 0.5rem;
+  }
+
+  .metric-detail {
+    font-size: 0.8rem;
+    color: #888;
+  }
+
+  /* Charts */
+  .token-breakdown-chart,
+  .progress-metric,
+  .chart-container {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .chart-title {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
+  .stacked-bar,
+  .horizontal-bar {
+    display: flex;
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ddd;
+  }
+
+  .bar-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: white;
+  }
+
+  .bar-segment.schema { background: #ff6b6b; }
+  .bar-segment.history { background: #4ecdc4; }
+  .bar-segment.results { background: #ffa07a; }
+  .bar-segment.cache-hit { background: #51cf66; }
+  .bar-segment.cache-miss { background: #e0e0e0; color: #666; }
+  .bar-segment.saved { background: #51cf66; }
+  .bar-segment.unsaved { background: #e0e0e0; color: #666; }
+  .bar-segment.confirmed { background: #4ecdc4; }
+  .bar-segment.probable { background: #95e1d3; }
+  .bar-segment.ambiguous { background: #f7dc6f; color: #333; }
+
+  .chart-legend {
+    display: flex;
+    gap: 2rem;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-box {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .legend-box.schema { background: #ff6b6b; }
+  .legend-box.history { background: #4ecdc4; }
+  .legend-box.results { background: #ffa07a; }
+  .legend-box.confirmed { background: #4ecdc4; }
+  .legend-box.probable { background: #95e1d3; }
+  .legend-box.ambiguous { background: #f7dc6f; }
+
+  /* Tables */
+  .tool-usage-table,
+  .iterations-table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .tool-usage-table th,
+  .iterations-table th {
+    background: #f0f0f0;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .tool-usage-table td,
+  .iterations-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .success-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .success-fill {
+    height: 20px;
+    background: #51cf66;
+    border-radius: 3px;
+    min-width: 50px;
+  }
+
+  /* Insights */
+  .insight-box {
+    background: #e3f2fd;
+    border-left: 4px solid #0066cc;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  /* Recommendations */
+  .summary-section {
+    background: #f0f8ff;
+  }
+
+  .recommendations {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .rec-item {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .rec-item strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #0066cc;
+  }
+
+  /* Navigation */
+  .nav-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: center;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #0066cc;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    border: 1px solid #0052a3;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn:hover {
+    background: #0052a3;
+  }
+
+  @media (max-width: 768px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .recommendations {
+      grid-template-columns: 1fr;
+    }
+
+    .label-small {
+      display: none;
+    }
+  }
+</style>

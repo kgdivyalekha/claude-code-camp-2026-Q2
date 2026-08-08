@@ -1,0 +1,244 @@
+<a href="/sessions/<%= @session.id %>" class="back">&larr; Session</a>
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2rem;">
+  <div>
+    <h1 style="margin: 0 0 0.5rem 0;">🗺️ World Map (Live)</h1>
+    <p class="meta">Session <%= @session.id %> · <span id="room-count"><%= @room_count %></span> rooms · <span id="unique-count">calculating...</span> unique · <span id="status" style="color: #27ae60; font-weight: bold;">● Auto-updating</span></p>
+  </div>
+</div>
+
+<%
+  # Color palette for rooms
+  color_palette = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#AED6F1',
+    '#73C6B6', '#F5B041', '#D7BDE2', '#76D7C4', '#F9E79F',
+    '#F1948A', '#A3E4D7', '#F4D03F', '#D2B4DE', '#85C1E9'
+  ]
+
+  # Deduplicate rooms by name, keeping first occurrence
+  unique_rooms = {}
+  @rooms.each do |room|
+    unique_rooms[room[:name]] ||= room
+  end
+  @rooms_deduped = unique_rooms.values
+
+  # Recalculate positions for deduplicated rooms
+  @positions_deduped = {}
+  @rooms_deduped.each_with_index do |room, idx|
+    col = idx % 5
+    row = idx / 5
+    @positions_deduped[room[:id]] = { x: col, y: row }
+  end
+
+  # Helper to get color for a room
+  @room_colors = {}
+  @rooms_deduped.each do |room|
+    hash = room[:id].to_s.each_char.with_index.sum { |c, i| c.ord * (i + 1) }
+    @room_colors[room[:id]] = color_palette[hash % color_palette.length]
+  end
+%>
+
+<% if @world_available && @rooms_deduped.any? %>
+  <div style="position: relative; margin: 2rem 0; background: #f5f5f5; border-radius: 8px; padding: 2rem;">
+    <svg id="flowchart-svg" style="width: 100%; min-height: 800px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+      <defs>
+        <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="#2980b9" />
+        </marker>
+        <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="#e74c3c" />
+        </marker>
+        <style>
+          .flowchart-room {
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .flowchart-room:hover {
+            filter: drop-shadow(0 0 8px rgba(41, 128, 185, 0.6));
+            stroke-width: 3 !important;
+          }
+          .flowchart-room-current {
+            stroke: #e74c3c !important;
+            stroke-width: 4 !important;
+            filter: drop-shadow(0 0 12px rgba(231, 76, 60, 0.7));
+          }
+          .flowchart-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            fill: #2c3e50;
+            pointer-events: none;
+          }
+          .flowchart-direction {
+            font-size: 10px;
+            fill: #7f8c8d;
+            pointer-events: none;
+          }
+          .flowchart-connection {
+            stroke: #3498db;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrow-blue);
+          }
+        </style>
+      </defs>
+
+      <!-- Connections drawn first so they appear behind rooms -->
+      <% @rooms_deduped.each do |room| %>
+        <% if room[:exits] %>
+          <% room[:exits].each do |direction, target_id| %>
+            <% if target_id && target_id.to_s.strip != "" %>
+              <% target_room = @rooms_deduped.find { |r| r[:id] == target_id } %>
+              <% if target_room %>
+                <line class="flowchart-connection"
+                      x1="<%= @positions_deduped[room[:id]][:x] * 100 + 50 %>"
+                      y1="<%= @positions_deduped[room[:id]][:y] * 100 + 50 %>"
+                      x2="<%= @positions_deduped[target_id][:x] * 100 + 50 %>"
+                      y2="<%= @positions_deduped[target_id][:y] * 100 + 50 %>" />
+                <text class="flowchart-direction"
+                      x="<%= (@positions_deduped[room[:id]][:x] * 100 + @positions_deduped[target_id][:x] * 100) / 2 + 50 %>"
+                      y="<%= (@positions_deduped[room[:id]][:y] * 100 + @positions_deduped[target_id][:y] * 100) / 2 + 30 %>">
+                  <%= direction.upcase[0..1] %>
+                </text>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <!-- Rooms -->
+      <% @rooms_deduped.each do |room| %>
+        <% pos = @positions_deduped[room[:id]] %>
+        <% if pos %>
+          <% x = pos[:x] * 100 + 50 %>
+          <% y = pos[:y] * 100 + 50 %>
+          <% is_current = @current_room_id == room[:id] %>
+
+          <!-- Room box -->
+          <% base_color = @room_colors[room[:id]] %>
+          <rect class="flowchart-room <%= 'flowchart-room-current' if is_current %>"
+                id="room-<%= room[:id] %>"
+                data-room-id="<%= room[:id] %>"
+                data-room-name="<%= room[:name] %>"
+                data-room-desc="<%= (room[:description] || room[:summary] || 'No description') %>"
+                x="<%= x - 40 %>" y="<%= y - 25 %>"
+                width="80" height="50"
+                rx="6"
+                fill="<%= is_current ? '#FFE5E5' : base_color %>"
+                stroke="<%= is_current ? '#e74c3c' : base_color %>"
+                stroke-width="<%= is_current ? 4 : 2 %>" />
+
+          <!-- Room name -->
+          <text class="flowchart-label" x="<%= x %>" y="<%= y %>" fill="#1a1a1a" style="font-weight: bold; text-shadow: 0 1px 2px rgba(255,255,255,0.8);">
+            <% display_name = room[:name].length > 14 ? room[:name][0, 11] + "…" : room[:name] %>
+            <%= display_name %>
+          </text>
+
+          <!-- Visit count -->
+          <text class="flowchart-label" x="<%= x %>" y="<%= y + 15 %>" font-size="9" fill="#1a1a1a" style="opacity: 0.85;">
+            <%= room[:visit_count] %>×
+          </text>
+        <% end %>
+      <% end %>
+    </svg>
+  </div>
+
+  <!-- Room Info Panel -->
+  <div id="room-info-panel" style="
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: white;
+    border: 2px solid #2980b9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-width: 320px;
+    max-width: 450px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: none;
+    z-index: 100;
+  ">
+    <h3 id="room-name" style="margin: 0 0 1rem 0; color: #2980b9; font-size: 1.1rem;"></h3>
+    <p id="room-desc" style="margin: 0.5rem 0 1rem 0; font-size: 0.9rem; color: #555; line-height: 1.4; max-height: 120px; overflow-y: auto;"></p>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ecf0f1; font-size: 0.9rem;">
+      <div style="margin: 0.4rem 0; color: #555;">
+        <strong>Exits:</strong> <span id="room-exits"></span>
+      </div>
+    </div>
+  </div>
+
+<% else %>
+  <div style="margin: 2rem 0; padding: 2rem; background: #ecf0f1; border-radius: 4px; text-align: center;">
+    <h3 style="margin-top: 0;">🗺️ No Rooms Discovered Yet</h3>
+  </div>
+<% end %>
+
+<script>
+  const rooms = <%= @rooms_deduped.to_json %>;
+  const currentRoomId = <%= @current_room_id.to_json %>;
+
+  // Update unique count
+  document.getElementById('unique-count').textContent = rooms.length;
+  console.log(`Map loaded with ${rooms.length} unique rooms`);
+  console.log(`Current room ID: ${currentRoomId}`);
+
+  // Attach click handlers
+  document.querySelectorAll('.flowchart-room').forEach(rect => {
+    rect.addEventListener('click', (e) => {
+      const id = rect.getAttribute('data-room-id');
+      const name = rect.getAttribute('data-room-name');
+      const desc = rect.getAttribute('data-room-desc');
+
+      const room = rooms.find(r => r.id === id);
+      const exitCount = room && room.exits ? Object.keys(room.exits).length : 0;
+      const exitDirs = room && room.exits ? Object.keys(room.exits).map(d => d.toUpperCase()).join(', ') : 'none';
+
+      document.getElementById('room-name').textContent = name;
+      document.getElementById('room-desc').textContent = desc;
+      document.getElementById('room-exits').textContent = exitCount > 0 ? exitDirs : 'None';
+      document.getElementById('room-info-panel').style.display = 'block';
+    });
+  });
+
+  // Auto-show current room info on load
+  if (currentRoomId) {
+    const currentRect = document.getElementById('room-' + currentRoomId);
+    if (currentRect) {
+      console.log(`Highlighting current room ${currentRoomId}`);
+      currentRect.click();
+    } else {
+      console.warn(`Current room element not found for ID ${currentRoomId}`);
+    }
+  }
+
+  // Auto-refresh the map every 3 seconds to show player movement
+  let lastHash = JSON.stringify(rooms);
+  setInterval(() => {
+    // Soft refresh - fetch the latest version
+    fetch(window.location.href)
+      .then(response => response.text())
+      .then(html => {
+        // Parse new HTML to extract room data
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(html, 'text/html');
+        const newScript = newDoc.querySelector('script');
+
+        if (newScript) {
+          // Extract rooms data from new page
+          const newRoomsMatch = newScript.textContent.match(/const rooms = (\[[\s\S]*?\]);/);
+          if (newRoomsMatch) {
+            const newRoomsJson = newRoomsMatch[1];
+            const currentHash = JSON.stringify(newRoomsJson);
+
+            // Only reload if room data has changed (player moved or new room discovered)
+            if (currentHash !== lastHash) {
+              console.log('Map data changed, refreshing...');
+              location.reload();
+            }
+          }
+        }
+      })
+      .catch(err => console.log('Auto-refresh check failed:', err));
+  }, 3000);
+</script>

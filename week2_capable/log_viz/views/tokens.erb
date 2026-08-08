@@ -44,6 +44,31 @@
     </div>
   </section>
 
+  <!-- Tool Dispatch Summary -->
+  <section class="tool-dispatch">
+    <h2>Tool Dispatch</h2>
+    <p class="description">Available tools and dispatched actions per turn</p>
+    <% if @tool_dispatch && @tool_dispatch.any? %>
+      <div class="tool-dispatch-list">
+        <% @tool_dispatch.each do |turn, data| %>
+          <div class="tool-turn">
+            <div class="turn-label">Turn <%= turn %></div>
+            <div class="tools-count"><%= data[:tools_count] %> tool<%= data[:tools_count] == 1 ? '' : 's' %> dispatched</div>
+            <% if data[:tools].any? %>
+              <div class="tools-detail">
+                <% data[:tools].uniq.each do |tool| %>
+                  <span class="tool-badge"><%= tool %></span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p style="color: var(--text-secondary);">No tool dispatch data available.</p>
+    <% end %>
+  </section>
+
   <!-- Token Breakdown -->
   <section class="token-breakdown">
     <h2>Token Breakdown</h2>

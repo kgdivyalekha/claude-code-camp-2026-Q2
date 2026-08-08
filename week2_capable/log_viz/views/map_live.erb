@@ -100,35 +100,35 @@
             <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B" />
           </marker>
           <marker id="arrowhead-yellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-            <polygon points="0 0, 10 3, 0 6" fill="#FFD700" />
+            <polygon points="0 0, 10 3, 0 6" fill="#FFFF00" />
           </marker>
-          <!-- Room gradients for visual depth -->
+          <!-- Room gradients - light pastels for visibility -->
           <linearGradient id="room-grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:#CC5555;stop-opacity:0.9" />
+            <stop offset="0%" style="stop-color:#FFE5E5;stop-opacity:1.0" />
+            <stop offset="100%" style="stop-color:#FFCCCC;stop-opacity:1.0" />
           </linearGradient>
           <linearGradient id="room-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#4ECDC4;stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:#3BA39C;stop-opacity:0.9" />
+            <stop offset="0%" style="stop-color:#E5F9F7;stop-opacity:1.0" />
+            <stop offset="100%" style="stop-color:#CCEFF0;stop-opacity:1.0" />
           </linearGradient>
           <linearGradient id="room-grad-3" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:#3289A8;stop-opacity:0.9" />
+            <stop offset="0%" style="stop-color:#E5F2FF;stop-opacity:1.0" />
+            <stop offset="100%" style="stop-color:#CCECFF;stop-opacity:1.0" />
           </linearGradient>
           <linearGradient id="room-grad-4" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#FFA07A;stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:#E67E5E;stop-opacity:0.9" />
+            <stop offset="0%" style="stop-color:#FFF4E5;stop-opacity:1.0" />
+            <stop offset="100%" style="stop-color:#FFECCB;stop-opacity:1.0" />
           </linearGradient>
           <linearGradient id="room-grad-5" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#98D8C8;stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:#6DB8A8;stop-opacity:0.9" />
+            <stop offset="0%" style="stop-color:#F0FFE5;stop-opacity:1.0" />
+            <stop offset="100%" style="stop-color:#E5FFCC;stop-opacity:1.0" />
           </linearGradient>
           <style>
             .map-connection {
-              stroke: rgba(69, 183, 209, 0.3);
-              stroke-width: 2;
+              stroke: rgba(40, 150, 200, 0.8);
+              stroke-width: 3;
               fill: none;
-              filter: drop-shadow(0 0 2px rgba(100, 150, 255, 0.3));
+              filter: drop-shadow(0 0 3px rgba(40, 150, 200, 0.6));
             }
             .map-arrow {
               stroke: #FF6B6B;
@@ -139,11 +139,12 @@
             }
             .map-room-label {
               font-size: 12px;
-              font-weight: 600;
+              font-weight: 700;
               text-anchor: middle;
               dominant-baseline: middle;
               pointer-events: none;
-              filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+              fill: #ffffff;
+              filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)), drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
             }
             .map-room-rect {
               cursor: pointer;
@@ -157,30 +158,45 @@
         </defs>
 
         <!-- Draw connections between rooms (confirmed connections with target rooms) -->
+        <% connection_count = 0 %>
         <% @rooms.each do |room| %>
-          <% if @positions[room[:id]] %>
-            <% from_pos = @positions[room[:id]] %>
-            <% from_x = from_pos[:x] * 120 + 60 %>
-            <% from_y = from_pos[:y] * 120 + 60 %>
-            <% room[:exits].each do |direction, target_id| %>
-              <% if target_id.to_s.strip != "" && @positions[target_id] %>
-                <% to_pos = @positions[target_id] %>
-                <% to_x = to_pos[:x] * 120 + 60 %>
-                <% to_y = to_pos[:y] * 120 + 60 %>
-                <line class="map-connection" x1="<%= from_x %>" y1="<%= from_y %>" x2="<%= to_x %>" y2="<%= to_y %>" marker-end="url(#arrowhead-blue)" />
+          <% room_id = room[:id] %>
+          <% room_pos = @positions[room_id] %>
+          <% if room_pos %>
+            <% from_x = room_pos[:x] * 120 + 60 %>
+            <% from_y = room_pos[:y] * 120 + 60 %>
+            <% exits = room[:exits] || {} %>
+            <% exits.each do |direction, target_id| %>
+              <% if target_id && target_id.to_s.strip != "" %>
+                <% target_pos = @positions[target_id] %>
+                <% if target_pos %>
+                  <% to_x = target_pos[:x] * 120 + 60 %>
+                  <% to_y = target_pos[:y] * 120 + 60 %>
+                  <line x1="<%= from_x %>" y1="<%= from_y %>" x2="<%= to_x %>" y2="<%= to_y %>" class="map-connection" />
+                  <% connection_count += 1 %>
+                <% end %>
               <% end %>
             <% end %>
           <% end %>
         <% end %>
+        <!-- DEBUG: Show room and connection counts -->
+        <g transform="translate(10, 10)">
+          <rect width="200" height="40" fill="rgba(255,255,255,0.9)" stroke="rgba(0,0,0,0.3)" stroke-width="1" rx="4"/>
+          <text x="5" y="18" font-size="12" font-weight="bold" fill="rgba(0,0,0,0.8)">Rooms: <%= @rooms.length %> | Connections: <%= connection_count %></text>
+          <text x="5" y="35" font-size="10" fill="rgba(100,100,100,0.8)">Positions: <%= @positions.length %></text>
+        </g>
 
         <!-- Draw rooms as small rectangles with gradients -->
         <% gradient_ids = ['room-grad-1', 'room-grad-2', 'room-grad-3', 'room-grad-4', 'room-grad-5'] %>
+        <% room_count = 0 %>
         <% @rooms.each_with_index do |room, idx| %>
-          <% if @positions[room[:id]] %>
-            <% pos = @positions[room[:id]] %>
+          <% room_id = room[:id] %>
+          <% pos = @positions[room_id] %>
+          <% if pos %>
             <% x = pos[:x] * 120 + 60 %>
             <% y = pos[:y] * 120 + 60 %>
             <% grad_id = gradient_ids[idx % gradient_ids.length] %>
+            <% room_count += 1 %>
 
             <!-- Room rectangle with gradient fill -->
             <rect class="map-room-rect"
@@ -193,8 +209,8 @@
                   width="90" height="50"
                   rx="8" ry="8"
                   fill="url(#<%= grad_id %>)"
-                  stroke="rgba(255, 255, 255, 0.3)"
-                  stroke-width="2"
+                  stroke="rgba(80, 80, 80, 0.6)"
+                  stroke-width="2.5"
                   style="cursor: pointer;"
             >
               <title><%= room[:name] %></title>
@@ -210,7 +226,8 @@
             </text>
 
             <!-- Direction indicators for all exits (traversed and untraversed) -->
-            <% room[:exits].each do |direction, target_id| %>
+            <% exits = room[:exits] || {} %>
+            <% exits.each do |direction, target_id| %>
               <% is_traversed = target_id.to_s.strip != "" %>
               <% arrow_offset = 50 %>
               <% dir_map = {
@@ -235,24 +252,18 @@
                 <% dx, dy, label = dir_map[direction.downcase] %>
                 <% if is_traversed %>
                   <!-- Confirmed exit with arrow line -->
-                  <line class="map-arrow"
-                        x1="<%= x %>" y1="<%= y %>"
-                        x2="<%= x + dx*0.6 %>" y2="<%= y + dy*0.6 %>"
-                        marker-end="url(#arrowhead-red)" stroke="#FF6B6B" />
-                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="10" fill="#FF6B6B" font-weight="bold">
-                    <%= label %>
-                  </text>
+                  <line class="map-arrow" x1="<%= x %>" y1="<%= y %>" x2="<%= x + dx*0.6 %>" y2="<%= y + dy*0.6 %>" marker-end="url(#arrowhead-red)" stroke="#FF6B6B" />
+                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="10" fill="#FF6B6B" font-weight="bold"><%= label %></text>
                 <% else %>
                   <!-- Undiscovered exit - just a small indicator dot -->
                   <circle cx="<%= x + dx*0.35 %>" cy="<%= y + dy*0.35 %>" r="2.5" fill="rgba(255,165,0,0.5)" stroke="rgba(255,165,0,0.8)" stroke-width="0.5" />
-                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="9" fill="rgba(255,165,0,0.7)" font-weight="bold">
-                    <%= label %>?
-                  </text>
+                  <text class="map-room-label" x="<%= x + dx %>" y="<%= y + dy %>" font-size="9" fill="rgba(255,165,0,0.7)" font-weight="bold"><%= label %>?</text>
                 <% end %>
               <% end %>
             <% end %>
           <% end %>
         <% end %>
+        <text x="10" y="40" font-size="12" fill="rgba(100,100,100,0.5)">Rooms: <%= room_count %>/<%= @rooms.length %></text>
       </svg>
     </div>
 
@@ -352,6 +363,22 @@
     firstRoom: rooms && rooms.length > 0 ? rooms[0] : null,
   });
 
+  // Debug: Log all rooms with their exits and positions
+  if (rooms && rooms.length > 0) {
+    console.log('All rooms:');
+    rooms.forEach(r => {
+      const pos = positions[r.id];
+      const posStr = pos ? `[${pos.x * 120 + 60}, ${pos.y * 120 + 60}]` : 'NO POSITION';
+      console.log(`  ${r.name} (${r.id}): exits=`, r.exits, `position=${posStr}`);
+    });
+  }
+
+  // Debug: Check SVG elements
+  console.log('SVG room elements:');
+  document.querySelectorAll('.map-room-rect').forEach(rect => {
+    console.log(`  ${rect.getAttribute('data-room-name')}: x=${rect.getAttribute('x')}, y=${rect.getAttribute('y')}, visible=${rect.offsetHeight > 0}`);
+  });
+
   function highlightPlayerPosition() {
     const svg = document.getElementById('world-map-svg');
     if (!rooms || rooms.length === 0 || !svg) return;
@@ -389,20 +416,20 @@
             const targetX = targetPos.x * 120 + 60;
             const targetY = targetPos.y * 120 + 60;
 
-            // Draw bright yellow arrow from player location
+            // Draw bright neon yellow arrow from player location
             const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             arrow.setAttribute('x1', playerX);
             arrow.setAttribute('y1', playerY);
             arrow.setAttribute('x2', targetX);
             arrow.setAttribute('y2', targetY);
-            arrow.setAttribute('stroke', '#FFD700');
-            arrow.setAttribute('stroke-width', '3.5');
+            arrow.setAttribute('stroke', '#FFFF00');  // Pure bright yellow
+            arrow.setAttribute('stroke-width', '5');  // Thicker for visibility
             arrow.setAttribute('stroke-dasharray', '0');
             arrow.setAttribute('marker-end', 'url(#arrowhead-yellow)');
-            arrow.setAttribute('opacity', '0.9');
+            arrow.setAttribute('opacity', '1.0');  // Full opacity
             arrow.setAttribute('class', 'player-arrow');
-            arrow.setAttribute('filter', 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))');
-            svg.insertBefore(arrow, svg.children[1]);
+            arrow.style.filter = 'drop-shadow(0 0 8px rgba(255, 255, 0, 1.0)) drop-shadow(0 0 3px rgba(0, 0, 0, 0.8))';  // Double glow for visibility
+            svg.appendChild(arrow);  // Append to end so arrows are on top
             console.log('Added arrow from', [playerX, playerY], 'to', [targetX, targetY]);
           }
         });
@@ -434,7 +461,7 @@
         circle.setAttribute('stroke-dasharray', '8,4');
         circle.setAttribute('opacity', '0.7');
         circle.setAttribute('class', 'player-circle');
-        svg.insertBefore(circle, svg.firstChild.nextSibling);
+        svg.appendChild(circle);  // Append so circle is on top
 
         // Inner solid circle
         const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -468,6 +495,33 @@
 
   // Initial highlight
   highlightPlayerPosition();
+
+  // Center the current room in the view
+  function centerCurrentRoom() {
+    if (!currentRoomId) return;
+    const playerRoomId = 'room-' + currentRoomId;
+    const playerRoomRect = document.getElementById(playerRoomId);
+    if (playerRoomRect) {
+      const container = document.getElementById('map-container');
+      if (container) {
+        // Get room position
+        const rect = playerRoomRect.getBoundingClientRect();
+        const svg = document.getElementById('world-map-svg');
+        const svgRect = svg.getBoundingClientRect();
+
+        // Calculate center position
+        const roomX = parseInt(playerRoomRect.getAttribute('x')) + 45;
+        const roomY = parseInt(playerRoomRect.getAttribute('y')) + 25;
+
+        // Scroll to center room in viewport
+        container.scrollLeft = roomX - (container.clientWidth / 2);
+        container.scrollTop = roomY - (container.clientHeight / 2);
+      }
+    }
+  }
+
+  // Center on load and after each refresh
+  setTimeout(centerCurrentRoom, 100);
 
   function showRoomInfo(id, name, desc) {
     document.getElementById('room-name').textContent = name;
@@ -626,34 +680,36 @@
       });
   }, { once: true });
 
-  // Legend for map symbols
+  // Legend for map symbols (positioned outside/below map)
   window.addEventListener('load', () => {
     const legend = document.createElement('div');
     legend.style.cssText = `
-      position: absolute;
-      top: 20px; left: 20px;
+      position: relative;
+      margin-top: 1.5rem;
       background: rgba(20, 30, 50, 0.85);
       border: 2px solid rgba(69, 183, 209, 0.6);
       border-radius: 12px;
       padding: 1rem;
-      z-index: 15;
       backdrop-filter: blur(4px);
       font-size: 0.85rem;
       color: #b0b0b0;
-      min-width: 200px;
+      width: fit-content;
     `;
     legend.innerHTML = `
       <h4 style="margin: 0 0 0.8rem 0; color: #45B7D1; font-size: 0.95rem;">🧭 Map Legend</h4>
       <div style="line-height: 1.6;">
+        <div><span style="color: #FFD700; font-weight: bold;">━━➤</span> Yellow arrow = from you</div>
+        <div><span style="color: #45B7D1;">━━➤</span> Blue arrow = room connections</div>
         <div><span style="color: #FF6B6B;">━━</span> Red arrow = traversed exit</div>
         <div><span style="color: rgba(255,165,0,0.8);">● ?</span> Orange = undiscovered</div>
         <div><span style="color: #FF6B6B;">◯ YOU ARE HERE</span> = player location</div>
         <div style="color: #999; font-size: 0.8rem; margin-top: 0.5rem;">Click rooms for details</div>
       </div>
     `;
-    const mapContainer = document.querySelector('[style*="border-radius: 8px"]');
-    if (mapContainer && mapContainer.parentElement) {
-      mapContainer.parentElement.appendChild(legend);
+    // Insert after the entire map section
+    const mapSection = document.querySelector('[style*="position: relative; margin: 2rem 0;"]');
+    if (mapSection && mapSection.parentElement) {
+      mapSection.parentElement.insertBefore(legend, mapSection.nextSibling);
     }
   }, { once: true });
 </script>

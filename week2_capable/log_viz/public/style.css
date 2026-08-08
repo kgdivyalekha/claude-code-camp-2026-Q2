@@ -821,3 +821,66 @@ table.sessions a:hover {
   margin: 0.5rem 0;
   line-height: 1.6;
 }
+
+/* Tool Dispatch Section */
+.tool-dispatch {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.tool-dispatch h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.tool-dispatch .description {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.tool-dispatch-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.tool-turn {
+  background: var(--assistant-bg);
+  border-left: 4px solid var(--accent);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+}
+
+.tool-turn .turn-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
+.tool-turn .tools-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.tool-turn .tools-detail {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tool-turn .tool-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: #4a90e2;
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  font-weight: 500;
+}
