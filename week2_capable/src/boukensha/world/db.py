@@ -29,6 +29,7 @@ class WorldDB:
                 signature       TEXT NOT NULL,
                 description     TEXT,
                 summary         TEXT,
+                keywords        TEXT,
                 zone_guess      TEXT,
                 confidence      TEXT NOT NULL DEFAULT 'probable',
                 is_safe         INTEGER,
@@ -37,6 +38,25 @@ class WorldDB:
                 visit_count     INTEGER DEFAULT 0,
                 discovered_by   TEXT,
                 notes           TEXT
+            );""")
+
+        # Add keywords column if it doesn't exist (migration for existing DBs)
+        cursor = self.conn.execute("PRAGMA table_info(rooms)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if 'keywords' not in columns:
+            self.conn.execute("ALTER TABLE rooms ADD COLUMN keywords TEXT")
+            self.conn.commit()
+
+        # Continue with remaining tables
+        self.conn.executescript("""
+
+            CREATE TABLE IF NOT EXISTS keywords (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword         TEXT NOT NULL,
+                room_id         TEXT NOT NULL REFERENCES rooms(id),
+                extracted_from  TEXT,
+                confidence      TEXT DEFAULT 'auto',
+                added_at        TEXT
             );
 
             CREATE TABLE IF NOT EXISTS exits (
@@ -84,6 +104,8 @@ class WorldDB:
 
             CREATE INDEX IF NOT EXISTS idx_rooms_signature ON rooms(signature);
             CREATE INDEX IF NOT EXISTS idx_rooms_name ON rooms(name);
+            CREATE INDEX IF NOT EXISTS idx_keywords_keyword ON keywords(keyword);
+            CREATE INDEX IF NOT EXISTS idx_keywords_room ON keywords(room_id);
             CREATE INDEX IF NOT EXISTS idx_exits_target ON exits(target_room_id);
             CREATE INDEX IF NOT EXISTS idx_items_room ON items(room_id);
             CREATE INDEX IF NOT EXISTS idx_npcs_room ON npcs(room_id);
@@ -297,6 +319,167 @@ class WorldDB:
                 }
             )
         return rooms
+
+    # Keyword operations
+    def add_keywords(
+        self,
+        room_id: str,
+        keywords: List[str],
+        extracted_from: str = "description",
+        confidence: str = "auto",
+    ) -> None:
+        """Add keywords to a room.
+
+        Args:
+            room_id: Room ID
+            keywords: List of keywords (e.g., ["fountain", "plaza", "market"])
+            extracted_from: Source of keywords ("description", "name", "manual")
+            confidence: Confidence level ("auto", "manual")
+        """
+        now = datetime.now().astimezone().isoformat()
+
+        for keyword in keywords:
+            keyword_lower = keyword.lower().strip()
+            if keyword_lower:
+                self.conn.execute(
+                    """
+                    INSERT INTO keywords
+                    (keyword, room_id, extracted_from, confidence, added_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (keyword_lower, room_id, extracted_from, confidence, now),
+                )
+
+        # Store comma-separated keywords in room
+        keywords_str = ", ".join(keywords)
+        self.conn.execute(
+            "UPDATE rooms SET keywords = ? WHERE id = ?",
+            (keywords_str, room_id),
+        )
+        self.conn.commit()
+
+    def get_keywords(self, room_id: str) -> List[str]:
+        """Get all keywords for a room."""
+        cursor = self.conn.execute(
+            "SELECT keyword FROM keywords WHERE room_id = ? ORDER BY keyword",
+            (room_id,),
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+    def search_by_keyword(self, keyword: str) -> List[Dict[str, Any]]:
+        """Find all rooms matching a keyword.
+
+        Args:
+            keyword: Keyword to search for (case-insensitive)
+
+        Returns:
+            List of room dicts matching the keyword
+        """
+        keyword_lower = keyword.lower()
+        cursor = self.conn.execute(
+            """
+            SELECT DISTINCT r.id, r.name, r.signature, r.description,
+                   r.summary, r.zone_guess, r.confidence,
+                   r.is_safe, r.first_seen, r.last_seen, r.visit_count,
+                   r.discovered_by, r.notes
+            FROM rooms r
+            JOIN keywords k ON r.id = k.room_id
+            WHERE k.keyword LIKE ?
+            ORDER BY r.visit_count DESC
+            """,
+            (f"%{keyword_lower}%",),
+        )
+
+        rooms = []
+        for row in cursor.fetchall():
+            rooms.append({
+                "id": row[0],
+                "name": row[1],
+                "signature": row[2],
+                "description": row[3],
+                "summary": row[4],
+                "zone_guess": row[5],
+                "confidence": row[6],
+                "is_safe": row[7],
+                "first_seen": row[8],
+                "last_seen": row[9],
+                "visit_count": row[10],
+                "discovered_by": row[11],
+                "notes": row[12],
+            })
+        return rooms
+
+    def search_by_keywords(self, keywords: List[str]) -> List[Dict[str, Any]]:
+        """Find rooms matching any of the given keywords.
+
+        Args:
+            keywords: List of keywords to search for
+
+        Returns:
+            List of room dicts, grouped by match count
+        """
+        if not keywords:
+            return []
+
+        placeholders = ",".join("?" * len(keywords))
+        keywords_lower = [k.lower() for k in keywords]
+
+        cursor = self.conn.execute(
+            f"""
+            SELECT r.id, r.name, r.signature, r.description,
+                   r.summary, r.zone_guess, r.confidence,
+                   r.is_safe, r.first_seen, r.last_seen, r.visit_count,
+                   r.discovered_by, r.notes, COUNT(k.keyword) as match_count
+            FROM rooms r
+            JOIN keywords k ON r.id = k.room_id
+            WHERE k.keyword IN ({placeholders})
+            GROUP BY r.id
+            ORDER BY match_count DESC, r.visit_count DESC
+            """,
+            keywords_lower,
+        )
+
+        rooms = []
+        for row in cursor.fetchall():
+            room_dict = {
+                "id": row[0],
+                "name": row[1],
+                "signature": row[2],
+                "description": row[3],
+                "summary": row[4],
+                "zone_guess": row[5],
+                "confidence": row[6],
+                "is_safe": row[7],
+                "first_seen": row[8],
+                "last_seen": row[9],
+                "visit_count": row[10],
+                "discovered_by": row[11],
+                "notes": row[12],
+                "keyword_matches": row[13],
+            }
+            rooms.append(room_dict)
+        return rooms
+
+    def get_popular_keywords(self, limit: int = 20) -> List[Tuple[str, int]]:
+        """Get most common keywords across all rooms.
+
+        Args:
+            limit: Maximum keywords to return
+
+        Returns:
+            List of (keyword, room_count) tuples
+        """
+        cursor = self.conn.execute(
+            """
+            SELECT keyword, COUNT(DISTINCT room_id) as room_count
+            FROM keywords
+            GROUP BY keyword
+            ORDER BY room_count DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def close(self) -> None:
         """Close the database connection."""

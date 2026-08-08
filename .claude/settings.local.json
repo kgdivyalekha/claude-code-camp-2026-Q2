@@ -282,7 +282,23 @@
       "Bash(bash -c '\nexec 3<>/dev/tcp/localhost/4000\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\necho \"queen\" >&3\nread -t 2 line <&3 && echo \"$line\"\necho \"password\" >&3\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nexec 3>&-\n')",
       "Bash(cd \\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\system\\\\\\\\claude-code-camp-2026-Q2\\\\\\\\week2_capable)",
       "WebFetch(domain:127.0.0.1)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/test/test_m9_pathfinding.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/examples/m9_pathfinding_demo.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/test/test_navigator_tool.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/test/test_compaction_trigger.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/examples/navigator_demo.py)",
+      "Bash(cat *)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/test/test_keywords.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python week2_capable/examples/keyword_search_demo.py)",
+      "Bash(rm -f ../M9_COMPLETION.md ../NAVIGATOR_IMPLEMENTATION.md ../SMART_NAVIGATION_GUIDE.md ../../KEYWORDS_FEATURE.md ../../NAVIGATOR_AND_COMPACTION.md ../../NAVIGATOR_SUMMARY.txt)",
+      "Bash(rm -rf ../scripts)",
+      "Bash(PYTHONPATH=src python3 populate_keywords.py --db .boukensha/world.db)",
+      "Bash(PYTHONPATH=src PYTHONIOENCODING=utf-8 python3 *)",
+      "Bash(PYTHONIOENCODING=utf-8 python3 *)",
+      "Bash(PYTHONPATH=src python3 *)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "PowerShell(cd week2_capable; Get-Item docs/M9_PATHFINDING.md, docs/M9_IMPLEMENTATION_CHECKLIST.md -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host \"Deleted: $\\($_.Name\\)\" }; cd ..; Get-Item PRACTICE_SKILL_GUIDE.md, MILESTONE_M9_SUMMARY.md -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item $_.FullName -Force; Write-Host \"Deleted: $\\($_.Name\\)\" })"
     ]
   }
 }
