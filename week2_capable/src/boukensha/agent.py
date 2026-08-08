@@ -14,6 +14,12 @@ try:
 except ImportError:
     GuardedRegistry = None  # M5 not available
 
+# Smart navigation imports (M9)
+try:
+    from .navigation import NavigationAssistant
+except ImportError:
+    NavigationAssistant = None  # Smart navigation not available
+
 
 class Agent:
     """The agent loop — sends requests, dispatches tools, and knows when to stop."""
@@ -37,6 +43,7 @@ class Agent:
         max_turn_tokens: Optional[int] = None,
         max_output_tokens: Optional[int] = None,
         cancel_event: Optional[threading.Event] = None,
+        navigation_assistant: Optional[Any] = None,
     ) -> None:
         self.context = context
         self.registry = registry
@@ -47,6 +54,7 @@ class Agent:
         self.max_turn_tokens = int(max_turn_tokens or 0)  # 0 = disabled
         self.max_output_tokens = max_output_tokens
         self.cancel_event = cancel_event
+        self.navigation_assistant = navigation_assistant
         self.iteration = 0
 
     def run(self) -> str:
@@ -88,6 +96,10 @@ class Agent:
             self._record_usage(response)
             self._log_reasoning(parsed["content"])
 
+            # M8: Proactive compaction at 80% of token budget (prevents running out)
+            if self._should_proactive_compact():
+                self._compact_if_needed()
+
             if parsed["stop_reason"] == "tool_use":
                 self._handle_tool_calls(parsed["content"], response)
             else:
@@ -114,6 +126,13 @@ class Agent:
 
     def _token_limit_reached(self) -> bool:
         return self.max_turn_tokens > 0 and self.context.turn_tokens >= self.max_turn_tokens
+
+    def _should_proactive_compact(self) -> bool:
+        """Check if we're approaching 80% of token budget (M8 proactive compaction)."""
+        if self.max_turn_tokens <= 0:
+            return False
+        threshold = int(self.max_turn_tokens * 0.8)
+        return self.context.turn_tokens >= threshold and self.context.turn_tokens < self.max_turn_tokens
 
     def _call_opts(self) -> Dict[str, Any]:
         """Build options for client.call(), including tools filtered by M4+M5."""
@@ -230,6 +249,30 @@ class Agent:
                 continue
 
             self.logger.reasoning(text=text, redacted=redacted)
+
+    def _get_navigation_context(self) -> Optional[str]:
+        """Get navigation hints from world.db for smart movement (M9).
+
+        Returns:
+            Navigation context string to append to system message, or None.
+        """
+        if not self.navigation_assistant or not hasattr(self.navigation_assistant, 'world_db'):
+            return None
+
+        try:
+            # Check if world.db has any known rooms
+            known = self.navigation_assistant.get_all_known_rooms()
+            if not known:
+                return None
+
+            hints = [
+                f"You have discovered {len(known)} rooms. ",
+                "When navigating to a known room, use this path instead of exploring blindly. ",
+                "This saves significant time and tokens."
+            ]
+            return "".join(hints)
+        except Exception:
+            return None
 
     def _handle_tool_calls(self, content: List[Dict[str, Any]], response: Dict[str, Any]) -> None:
         """Log any preamble, store the assistant message, then dispatch each tool call."""

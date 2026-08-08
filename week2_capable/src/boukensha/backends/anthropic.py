@@ -86,23 +86,36 @@ class Anthropic(BackendBase):
         context: Context,
         max_output_tokens: int = 1024,
         tools: Optional[List[Dict[str, Any]]] = None,
+        enable_cache: bool = True,
     ) -> Dict[str, Any]:
         tool_list = tools if tools is not None else self.to_tools(context.tools)
 
-        # TODO: M8 cache_control marker breaks tool invocation — temporarily disabled
-        # Add ephemeral cache control to the last tool. Prompt cache gives ~90%
-        # discount on cached input; the system prompt + tool definitions are
-        # stable within a phase, making them ideal cache prefix. (§3.5)
-        # if tool_list:
-        #     tool_list = [*tool_list[:-1], {**tool_list[-1], "cache_control": {"type": "ephemeral"}}]
+        # M8: Add ephemeral cache control to the last tool.
+        # Prompt cache gives ~90% discount on cached input; the system prompt + tool definitions
+        # are stable within a phase, making them ideal cache prefix. (§3.5)
+        if enable_cache and tool_list:
+            tool_list = [*tool_list[:-1], {**tool_list[-1], "cache_control": {"type": "ephemeral"}}]
 
-        return {
+        payload: Dict[str, Any] = {
             "model": self.model,
-            "system": context.system,
             "max_tokens": max_output_tokens,
             "tools": tool_list,
             "messages": self.to_messages(context.messages),
         }
+
+        # M8: Add cache_control to system message (stable content)
+        if enable_cache and context.system:
+            payload["system"] = [
+                {
+                    "type": "text",
+                    "text": context.system,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]
+        else:
+            payload["system"] = context.system
+
+        return payload
 
     def headers(self) -> Dict[str, str]:
         return {

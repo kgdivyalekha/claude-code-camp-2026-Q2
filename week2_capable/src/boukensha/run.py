@@ -48,6 +48,12 @@ except ImportError:
     WorldDB = None  # type: ignore[assignment,misc]
     NavigationTracker = None  # type: ignore[assignment,misc]
 
+# M9 integration: smart navigation using world.db
+try:
+    from .navigation import NavigationAssistant
+except ImportError:
+    NavigationAssistant = None  # type: ignore[assignment,misc]
+
 __version__ = "0.12.0"
 
 _API_KEY_ENV_VARS = {
@@ -298,7 +304,7 @@ def run(
         },
     )
 
-    # Automatically attach EventStore to capture events to events.db (M3 optimization)
+    # Automatically attach EventStore to capture events to events.db (M1 optimization)
     event_store = None
     try:
         event_store = EventStore()
@@ -309,6 +315,16 @@ def run(
     # M5 integration: wrap registry with GuardedRegistry for audit trail
     registry = _wrap_with_guarded_registry(registry, task, logger)
 
+    # M9 integration: smart navigation using world.db
+    navigation_assistant = None
+    if NavigationAssistant is not None:
+        try:
+            world_db = WorldDB(".boukensha/world.db") if WorldDB else None
+            if world_db:
+                navigation_assistant = NavigationAssistant(world_db=world_db)
+        except Exception as e:
+            print(f"[boukensha] warning: NavigationAssistant initialization failed: {e}", file=sys.stderr)
+
     agent = Agent(
         context=ctx,
         registry=registry,
@@ -318,6 +334,7 @@ def run(
         max_iterations=effective_max_iterations,
         max_turn_tokens=effective_max_turn_tokens,
         max_output_tokens=effective_max_output_tokens,
+        navigation_assistant=navigation_assistant,
     )
 
     ctx.add_message("user", task)

@@ -63,10 +63,10 @@ class PromptBuilder:
         return self.backend.to_tools(visible_tools)
 
     def to_api_payload(
-        self, max_output_tokens: int = 1024, tools: Any = None
+        self, max_output_tokens: int = 1024, tools: Any = None, enable_cache: bool = True
     ) -> Dict[str, Any]:
         return self.backend.to_payload(
-            self.context, max_output_tokens=max_output_tokens, tools=tools
+            self.context, max_output_tokens=max_output_tokens, tools=tools, enable_cache=enable_cache
         )
 
     def headers(self) -> Dict[str, str]:

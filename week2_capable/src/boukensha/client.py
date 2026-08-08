@@ -21,7 +21,7 @@ class Client:
         self.builder = builder
 
     def call(
-        self, max_output_tokens: int = 1024, tools: Any = None
+        self, max_output_tokens: int = 1024, tools: Any = None, enable_cache: bool = True
     ) -> Dict[str, Any]:
         """
         POST the payload to the API endpoint and return the parsed JSON response.
@@ -32,6 +32,7 @@ class Client:
         Args:
             max_output_tokens: Maximum tokens in response (default: 1024)
             tools: Optional list of tools; pass empty list to disable tools
+            enable_cache: Enable prompt caching (default: True, M8)
 
         Returns:
             Parsed JSON response from API as dict
@@ -42,7 +43,7 @@ class Client:
         url = self.builder.url()
         headers = self.builder.headers()
         payload = self.builder.to_api_payload(
-            max_output_tokens=max_output_tokens, tools=tools
+            max_output_tokens=max_output_tokens, tools=tools, enable_cache=enable_cache
         )
         body = json.dumps(payload, default=str)
 

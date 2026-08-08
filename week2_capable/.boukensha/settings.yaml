@@ -19,7 +19,7 @@ tokens:
 
   # Phase-based tool exposure
   phases:
-    exploring: [perception, movement]
+    exploring: [perception, movement, interaction]  # M9: includes drink, examine, interact
     fighting: [perception, movement, combat]
     trading: [perception, inventory, utility]
 
@@ -28,6 +28,7 @@ tokens:
     - "*__look"
     - "*__move"
     - "*__check"
+    - "*__drink"      # M9: drink water from fountains/containers
 
   # M3: Trim verbose tool descriptions to reduce schema tokens
   trim_descriptions_to: 200  # chars; first sentence always kept
@@ -80,8 +81,8 @@ permissions:
   default: allow
 
   rules:
-    # Exploration phase tools only
-    - allow: ["*__look", "*__examine", "*__check", "*__move"]
+    # Exploration phase tools only (M9: added drink for interaction)
+    - allow: ["*__look", "*__examine", "*__check", "*__move", "*__drink"]
 
     # Restrict irreversible commands
     - deny: "*__send_raw"

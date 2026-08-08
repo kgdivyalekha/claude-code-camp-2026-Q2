@@ -280,7 +280,9 @@
       "Bash(move east *)",
       "Bash(bash -c \"exec 3<>/dev/tcp/localhost/4000 && echo 'Connected' >&3 && head -c 100 <&3; exec 3>&-\")",
       "Bash(bash -c '\nexec 3<>/dev/tcp/localhost/4000\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\necho \"queen\" >&3\nread -t 2 line <&3 && echo \"$line\"\necho \"password\" >&3\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nread -t 2 line <&3 && echo \"$line\"\nexec 3>&-\n')",
-      "Bash(cd \\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\system\\\\\\\\claude-code-camp-2026-Q2\\\\\\\\week2_capable)"
+      "Bash(cd \\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\system\\\\\\\\claude-code-camp-2026-Q2\\\\\\\\week2_capable)",
+      "WebFetch(domain:127.0.0.1)",
+      "Bash(git rm *)"
     ]
   }
 }
